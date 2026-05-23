@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  tinyexec: 1.1.2
-  tldts: 7.0.30
-  tldts-core: 7.0.30
-
 importers:
 
   .:
