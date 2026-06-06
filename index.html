@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JSON Formatter</title>
+  <title>Tools</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,15 +16,7 @@
       --text-muted: #565f89;
       --accent: #7aa2f7;
       --accent-hover: #9ab8ff;
-      --err: #f7768e;
-      --ok: #9ece6a;
-      --str: #9ece6a;
-      --num: #ff9e64;
-      --bool: #bb9af7;
-      --null: #f7768e;
-      --key: #7aa2f7;
       --radius: 8px;
-      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
     }
 
     body {
@@ -44,13 +36,6 @@
       gap: 12px;
     }
 
-    header h1 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: -0.02em;
-    }
-
     header .logo {
       width: 28px;
       height: 28px;
@@ -64,405 +49,118 @@
       color: var(--bg);
     }
 
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
     .main {
       flex: 1;
+      max-width: 760px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 48px 32px;
+    }
+
+    .intro {
+      margin-bottom: 40px;
+    }
+
+    .intro h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .intro p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto 1fr;
-      gap: 0;
-      padding: 24px 32px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 16px;
     }
 
-    .toolbar {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      padding: 8px 16px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: var(--bg);
-      font-weight: 600;
-    }
-    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--text-muted);
-    }
-    .btn-ghost:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
-
-    .status-bar {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--text-muted);
-      transition: background 0.2s;
-    }
-    .status-dot.ok { background: var(--ok); }
-    .status-dot.err { background: var(--err); }
-
-    .pane {
+    .card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
-      min-height: 500px;
+      gap: 10px;
+      transition: border-color 0.15s, background 0.15s;
     }
 
-    .pane-header {
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.75rem;
+    .card:hover {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .card h3 {
+      font-size: 1rem;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: -0.01em;
+    }
+
+    .card p {
+      font-size: 0.875rem;
       color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .pane-actions {
-      display: flex;
-      gap: 4px;
-    }
-
-    .pane-actions button {
-      padding: 3px 8px;
-      font-size: 0.75rem;
-      background: transparent;
-      color: var(--text-muted);
-      border-color: transparent;
-    }
-    .pane-actions button:hover {
-      background: var(--surface2);
-      color: var(--text);
-      border-color: var(--border);
-    }
-
-    textarea {
+      line-height: 1.5;
       flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      resize: none;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 0.875rem;
-      line-height: 1.6;
-      padding: 16px;
-      tab-size: 2;
-    }
-    textarea::placeholder { color: var(--text-muted); }
-
-    .output {
-      flex: 1;
-      overflow: auto;
-      padding: 16px;
-      font-family: var(--mono);
-      font-size: 0.875rem;
-      line-height: 1.6;
     }
 
-    .output pre {
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    .error-msg {
-      color: var(--err);
-      font-family: var(--mono);
-      font-size: 0.875rem;
-      padding: 16px;
-      line-height: 1.6;
-    }
-
-    .placeholder-msg {
-      color: var(--text-muted);
-      font-size: 0.875rem;
-      padding: 16px;
-      font-style: italic;
-    }
-
-    /* Syntax highlighting */
-    .json-key    { color: var(--key); }
-    .json-str    { color: var(--str); }
-    .json-num    { color: var(--num); }
-    .json-bool   { color: var(--bool); }
-    .json-null   { color: var(--null); }
-    .json-punct  { color: var(--text-muted); }
-
-    .indent-toggle {
-      display: flex;
-      align-items: center;
-      gap: 4px;
+    .card-arrow {
       font-size: 0.8rem;
-      color: var(--text-muted);
+      color: var(--accent);
+      margin-top: 4px;
     }
 
-    select {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 0.8rem;
-      outline: none;
-      cursor: pointer;
-    }
-
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 10px 16px;
-      border-radius: var(--radius);
-      font-size: 0.875rem;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 0.2s, transform 0.2s;
-      pointer-events: none;
-      z-index: 100;
-    }
-    .toast.show { opacity: 1; transform: translateY(0); }
-
-    @media (max-width: 768px) {
-      .main { grid-template-columns: 1fr; padding: 16px; }
-      .pane { min-height: 300px; }
+    @media (max-width: 600px) {
+      .main { padding: 32px 16px; }
       header { padding: 16px; }
     }
   </style>
 </head>
 <body>
   <header>
-    <div class="logo">{ }</div>
-    <h1>JSON Formatter</h1>
+    <div class="logo">&#9881;</div>
+    <h1>Tools</h1>
   </header>
 
   <div class="main">
-    <div class="toolbar">
-      <button class="btn-primary" onclick="format()">&#9654; Format</button>
-      <button class="btn-ghost" onclick="minify()">Minify</button>
-      <button class="btn-ghost" onclick="clearAll()">Clear</button>
-      <label class="indent-toggle">
-        Indent
-        <select id="indentSize" onchange="format()">
-          <option value="2" selected>2 spaces</option>
-          <option value="4">4 spaces</option>
-          <option value="tab">tab</option>
-        </select>
-      </label>
-      <div class="status-bar">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="statusText"></span>
-      </div>
+    <div class="intro">
+      <h2>All tools</h2>
+      <p>A collection of small, single-purpose browser utilities.</p>
     </div>
 
-    <div class="pane">
-      <div class="pane-header">
-        Input
-        <div class="pane-actions">
-          <button onclick="pasteFromClipboard()">Paste</button>
-          <button onclick="clearInput()">Clear</button>
-        </div>
-      </div>
-      <textarea id="input" placeholder="Paste your JSON here..." spellcheck="false" oninput="onInput()"></textarea>
-    </div>
-
-    <div class="pane">
-      <div class="pane-header">
-        Output
-        <div class="pane-actions">
-          <button onclick="copyOutput()">Copy</button>
-        </div>
-      </div>
-      <div class="output" id="output">
-        <span class="placeholder-msg">Formatted JSON will appear here.</span>
-      </div>
+    <div class="grid">
+      <a class="card" href="json-formatter.html">
+        <div class="card-icon">{ }</div>
+        <h3>JSON Formatter</h3>
+        <p>Paste raw JSON and see it pretty-printed with syntax highlighting. Supports formatting, minifying, and copying output.</p>
+        <div class="card-arrow">Open &rarr;</div>
+      </a>
     </div>
   </div>
-
-  <div class="toast" id="toast"></div>
-
-  <script>
-    const inputEl  = document.getElementById('input');
-    const outputEl = document.getElementById('output');
-    const dotEl    = document.getElementById('statusDot');
-    const textEl   = document.getElementById('statusText');
-    const toastEl  = document.getElementById('toast');
-
-    let toastTimer = null;
-    let lastFormatted = '';
-
-    function getIndent() {
-      const v = document.getElementById('indentSize').value;
-      return v === 'tab' ? '\t' : parseInt(v, 10);
-    }
-
-    function onInput() {
-      const raw = inputEl.value.trim();
-      if (!raw) { reset(); return; }
-      try {
-        JSON.parse(raw);
-        format(true);
-      } catch {
-        setStatus('err', 'Invalid JSON');
-      }
-    }
-
-    function format(silent = false) {
-      const raw = inputEl.value.trim();
-      if (!raw) { reset(); return; }
-      try {
-        const parsed = JSON.parse(raw);
-        const pretty = JSON.stringify(parsed, null, getIndent());
-        lastFormatted = pretty;
-        outputEl.innerHTML = highlight(pretty);
-        setStatus('ok', `${countNodes(parsed)} nodes`);
-      } catch (e) {
-        lastFormatted = '';
-        outputEl.innerHTML = `<span class="error-msg">&#9888; ${escHtml(e.message)}</span>`;
-        setStatus('err', 'Invalid JSON');
-      }
-    }
-
-    function minify() {
-      const raw = inputEl.value.trim();
-      if (!raw) return;
-      try {
-        const parsed = JSON.parse(raw);
-        const mini = JSON.stringify(parsed);
-        lastFormatted = mini;
-        outputEl.innerHTML = `<pre>${escHtml(mini)}</pre>`;
-        setStatus('ok', `${mini.length} chars`);
-      } catch (e) {
-        outputEl.innerHTML = `<span class="error-msg">&#9888; ${escHtml(e.message)}</span>`;
-        setStatus('err', 'Invalid JSON');
-      }
-    }
-
-    function highlight(json) {
-      const escaped = json
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
-      const highlighted = escaped.replace(
-        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?|[{}\[\],:])/g,
-        (match) => {
-          if (/^".test(match)) {
-            if (/:$/.test(match)) {
-              return `<span class="json-key">${match}</span>`;
-            }
-            return `<span class="json-str">${match}</span>`;
-          }
-          if (/true|false/.test(match)) return `<span class="json-bool">${match}</span>`;
-          if (/null/.test(match))       return `<span class="json-null">${match}</span>`;
-          if (/[{}\[\],:]/.test(match)) return `<span class="json-punct">${match}</span>`;
-          return `<span class="json-num">${match}</span>`;
-        }
-      );
-      return `<pre>${highlighted}</pre>`;
-    }
-
-    function countNodes(val, seen = new WeakSet()) {
-      if (val === null || typeof val !== 'object') return 1;
-      if (seen.has(val)) return 0;
-      seen.add(val);
-      return 1 + Object.values(val).reduce((s, v) => s + countNodes(v, seen), 0);
-    }
-
-    function escHtml(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    function setStatus(type, msg) {
-      dotEl.className = 'status-dot ' + type;
-      textEl.textContent = msg;
-    }
-
-    function reset() {
-      outputEl.innerHTML = '<span class="placeholder-msg">Formatted JSON will appear here.</span>';
-      dotEl.className = 'status-dot';
-      textEl.textContent = '';
-      lastFormatted = '';
-    }
-
-    function clearAll() {
-      inputEl.value = '';
-      reset();
-    }
-
-    function clearInput() {
-      inputEl.value = '';
-      reset();
-    }
-
-    async function pasteFromClipboard() {
-      try {
-        const text = await navigator.clipboard.readText();
-        inputEl.value = text;
-        format();
-      } catch {
-        inputEl.focus();
-        toast('Use Ctrl+V to paste');
-      }
-    }
-
-    async function copyOutput() {
-      if (!lastFormatted) return;
-      try {
-        await navigator.clipboard.writeText(lastFormatted);
-        toast('Copied!');
-      } catch {
-        toast('Copy failed — try selecting and pressing Ctrl+C');
-      }
-    }
-
-    function toast(msg) {
-      toastEl.textContent = msg;
-      toastEl.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2000);
-    }
-
-    inputEl.addEventListener('paste', () => setTimeout(() => format(), 10));
-
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); format(); }
-    });
-  </script>
 </body>
 </html>
