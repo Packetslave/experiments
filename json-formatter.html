@@ -393,7 +393,7 @@
       const highlighted = escaped.replace(
         /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?|[{}\[\],:])/g,
         (match) => {
-          if (/^".test(match)) {
+          if (/^"/.test(match)) {
             return /:$/.test(match)
               ? `<span class="json-key">${match}</span>`
               : `<span class="json-str">${match}</span>`;
