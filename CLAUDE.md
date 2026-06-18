@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository purpose
 
-A playground for distributed systems algorithm experiments. Currently contains one module (`grpc/`) with a Go gRPC service skeleton. Additional experiments may be added as sibling directories at the repo root.
+A playground for distributed systems algorithm experiments and browser-based utilities. Contains a Go gRPC module (`grpc/`) and a collection of static web tools (`docs/`) published to GitHub Pages. Additional experiments may be added as sibling directories at the repo root.
 
 ## grpc/ module
 
@@ -62,3 +62,40 @@ grpc/
 **Adding interceptors** (logging, tracing, etc.): pass `grpc.ChainUnaryInterceptor(...)` to `grpc.NewServer()` in `cmd/server/main.go`.
 
 The client uses `grpc.NewClient` (not the deprecated `grpc.Dial`) with explicit `insecure.NewCredentials()`. New clients should follow the same pattern.
+
+## docs/ — web tools (GitHub Pages)
+
+Static single-page browser utilities, published at **https://packetslave.github.io/experiments/**.
+
+### Structure
+
+```
+docs/
+  index.html            # landing page listing all tools
+  json-formatter.html   # JSON pretty-printer with syntax highlighting
+```
+
+### GitHub Pages setup
+
+- Served from the `gh-pages` branch, root folder.
+- A `.nojekyll` file at the `gh-pages` root bypasses Jekyll so files are served as-is.
+- The `docs/` folder on `main`/feature branches is the source of truth; changes must also be pushed to `gh-pages` to go live.
+- There is no build step — edit the HTML files directly.
+
+### Pushing changes live
+
+Because this environment doesn't have `gh` CLI access, use the `mcp__github__create_or_update_file` or `mcp__github__push_files` MCP tools to commit directly to `gh-pages`. Always provide the current blob SHA when updating an existing file (`git rev-parse gh-pages:<path>` won't work for remote-only branches; fetch the SHA via `mcp__github__get_file_contents` instead).
+
+### Conventions
+
+- Each tool is a **single self-contained HTML file** with embedded CSS and JS — no bundler, no dependencies.
+- All pages share a Tokyo Night dark theme (`--bg: #1a1b26`, `--accent: #7aa2f7`, etc.) via CSS custom properties defined in `:root`.
+- Every page includes `<link rel="icon" href="data:image/svg+xml,...">` with an inline SVG favicon (accent-blue rounded square) to prevent 404s in request logs. Add this to any new page.
+- Tool pages link back to the index via `<a class="back" href="index.html">← Tools</a>` in the header.
+
+### Adding a new tool
+
+1. Create `docs/<tool-name>.html` following the shared theme and conventions above.
+2. Add a card for it in `docs/index.html` (`.grid > .card`).
+3. Commit both to the feature branch.
+4. Push both to `gh-pages` using the MCP file tools.
