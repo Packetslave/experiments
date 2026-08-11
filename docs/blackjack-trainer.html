@@ -91,13 +91,17 @@
       padding: 20px 24px 48px;
       display: grid;
       grid-template-columns: 1fr 320px;
+      grid-template-areas:
+        "stat     stat"
+        "table    side"
+        "controls side";
       gap: 20px;
       align-items: start;
     }
 
     /* ---- count / stat bar ---- */
     .statbar {
-      grid-column: 1 / -1;
+      grid-area: stat;
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
@@ -121,6 +125,7 @@
 
     /* ---- table ---- */
     .table {
+      grid-area: table;
       background: linear-gradient(160deg, var(--felt), #14261d);
       border: 1px solid var(--felt-border);
       border-radius: 14px;
@@ -218,7 +223,7 @@
 
     /* ---- controls ---- */
     .controls {
-      grid-column: 1 / -1;
+      grid-area: controls;
       display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
     }
     button.act {
@@ -250,7 +255,7 @@
     }
 
     /* ---- side panel ---- */
-    .side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+    .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
     .panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -365,8 +370,22 @@
     .modal-foot button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 
     @media (max-width: 880px) {
-      .main { grid-template-columns: 1fr; }
-      .side { position: static; }
+      /* Single column: lift the advisor directly under the table, above the
+         controls, so the recommended play is visible without scrolling. */
+      .main {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "stat"
+          "table"
+          "advisor"
+          "controls"
+          "trainer"
+          "stats";
+      }
+      .side { display: contents; }          /* promote panels into the grid */
+      .advisor-panel { grid-area: advisor; }
+      .trainer-panel { grid-area: trainer; }
+      .stats-panel   { grid-area: stats; }
     }
     @media (max-width: 560px) {
       header { padding: 14px 16px; }
@@ -419,14 +438,14 @@
 
     <!-- side panel -->
     <div class="side">
-      <div class="panel">
+      <div class="panel advisor-panel">
         <h2>Strategy advisor <span id="modeTag" class="dev-flag" style="display:none">deviations on</span></h2>
         <div class="body" id="advisor">
           <div class="hidden-hint">Deal a hand to see the recommended play.</div>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel trainer-panel">
         <h2>Trainer</h2>
         <div class="body">
           <div class="toggle-row">
@@ -440,7 +459,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel stats-panel">
         <h2>Session stats</h2>
         <div class="body" id="statsBody">
           <div class="stat-line"><span class="l">Decisions</span><span class="v" id="sDec">0</span></div>
