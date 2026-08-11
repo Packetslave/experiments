@@ -92,11 +92,20 @@
       display: grid;
       grid-template-columns: 1fr 320px;
       grid-template-areas:
-        "stat     stat"
-        "table    side"
-        "controls side";
+        "stat  stat"
+        "board side";
       gap: 20px;
       align-items: start;
+      align-content: start;   /* keep leftover space at the bottom; never
+                                 redistribute it across rows as content resizes */
+    }
+
+    .board {
+      grid-area: board;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
     }
 
     /* ---- count / stat bar ---- */
@@ -382,7 +391,9 @@
           "trainer"
           "stats";
       }
-      .side { display: contents; }          /* promote panels into the grid */
+      /* dissolve the wrappers so table/controls/panels place individually */
+      .board { display: contents; }
+      .side  { display: contents; }
       .advisor-panel { grid-area: advisor; }
       .trainer-panel { grid-area: trainer; }
       .stats-panel   { grid-area: stats; }
@@ -417,24 +428,28 @@
       <div class="stat" id="stBank"><div class="label">Bankroll</div><div class="value">1000</div></div>
     </div>
 
-    <!-- table -->
-    <div class="table">
-      <div class="cut-warning" id="cutWarn">Cut card &mdash; shuffling after this hand</div>
-      <div class="dealer-area">
-        <div class="seat-label">Dealer <span class="hand-value" id="dealerVal">&mdash;</span></div>
-        <div class="hand-cards" id="dealerCards"></div>
+    <!-- playing surface: table + controls kept together so their layout is
+         independent of the side column's (variable) height -->
+    <div class="board">
+      <!-- table -->
+      <div class="table">
+        <div class="cut-warning" id="cutWarn">Cut card &mdash; shuffling after this hand</div>
+        <div class="dealer-area">
+          <div class="seat-label">Dealer <span class="hand-value" id="dealerVal">&mdash;</span></div>
+          <div class="hand-cards" id="dealerCards"></div>
+        </div>
+        <div class="msg-area">
+          <div class="table-msg" id="tableMsg">Press <b>Deal</b> to start a hand.</div>
+        </div>
+        <div class="player-area">
+          <div class="seat-label">Player</div>
+          <div class="hands-row" id="playerHands"></div>
+        </div>
       </div>
-      <div class="msg-area">
-        <div class="table-msg" id="tableMsg">Press <b>Deal</b> to start a hand.</div>
-      </div>
-      <div class="player-area">
-        <div class="seat-label">Player</div>
-        <div class="hands-row" id="playerHands"></div>
-      </div>
-    </div>
 
-    <!-- controls -->
-    <div class="controls" id="controls"></div>
+      <!-- controls -->
+      <div class="controls" id="controls"></div>
+    </div>
 
     <!-- side panel -->
     <div class="side">
