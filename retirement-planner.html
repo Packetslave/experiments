@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retirement Planner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%237aa2f7'/></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1b26;
+      --surface: #24283b;
+      --surface2: #2a2f45;
+      --border: #3b4261;
+      --text: #c0caf5;
+      --text-muted: #565f89;
+      --accent: #7aa2f7;
+      --accent-hover: #9ab8ff;
+      --ok: #9ece6a;
+      --warn: #e0af68;
+      --err: #f7768e;
+      --radius: 8px;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .back {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+    }
+    .back:hover { color: var(--text); }
+
+    .header-divider { color: var(--border); font-size: 1.2rem; line-height: 1; }
+
+    header .logo {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--bg);
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      padding: 24px 32px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      align-items: start;
+    }
+
+    /* ---------- Inputs panel ---------- */
+    .inputs {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: sticky;
+      top: 24px;
+    }
+
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+
+    .field label {
+      font-size: 0.82rem;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .field .hint { font-size: 0.72rem; color: var(--text-muted); }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .input-wrap { position: relative; display: flex; align-items: center; }
+
+    .input-wrap .prefix,
+    .input-wrap .suffix {
+      position: absolute;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+    .input-wrap .prefix { left: 10px; }
+    .input-wrap .suffix { right: 10px; }
+
+    input[type="number"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.875rem;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input[type="number"]:focus { border-color: var(--accent); }
+    input.has-prefix { padding-left: 24px; }
+    input.has-suffix { padding-right: 30px; }
+    input.invalid { border-color: var(--err); }
+
+    /* ---------- Results ---------- */
+    .results { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+    .verdict {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      border-left: 4px solid var(--accent);
+    }
+    .verdict.ok   { border-left-color: var(--ok); }
+    .verdict.warn { border-left-color: var(--warn); }
+    .verdict.err  { border-left-color: var(--err); }
+
+    .verdict .headline {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .verdict .headline .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .badge.ok   { color: var(--ok);   border-color: var(--ok); }
+    .badge.warn { color: var(--warn); border-color: var(--warn); }
+    .badge.err  { color: var(--err);  border-color: var(--err); }
+
+    .verdict .sub { color: var(--text-muted); font-size: 0.9rem; line-height: 1.55; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .stat .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .stat .value {
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .stat .detail { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .panel-header .note { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+    .chart-box { padding: 8px 8px 4px; position: relative; }
+    #chart { display: block; width: 100%; height: auto; }
+
+    .tooltip {
+      position: absolute;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 11px;
+      font-size: 0.78rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+      z-index: 10;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .tooltip .tt-title { font-weight: 600; margin-bottom: 3px; }
+    .tooltip .tt-row { color: var(--text-muted); display: flex; justify-content: space-between; gap: 14px; }
+    .tooltip .tt-row .v { color: var(--text); font-family: var(--mono); }
+
+    /* ---------- Table ---------- */
+    details.table-panel summary {
+      padding: 12px 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    details.table-panel summary::-webkit-details-marker { display: none; }
+    details.table-panel summary::before { content: "\25B8"; transition: transform 0.15s; }
+    details.table-panel[open] summary::before { transform: rotate(90deg); }
+    details.table-panel summary:hover { color: var(--text); }
+
+    .table-scroll { overflow-x: auto; border-top: 1px solid var(--border); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      font-family: var(--mono);
+    }
+    th, td { padding: 7px 14px; text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    thead th {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+    }
+    tbody tr { border-bottom: 1px solid rgba(59, 66, 97, 0.4); }
+    tbody tr:hover { background: var(--surface2); }
+    td.neg { color: var(--err); }
+    td.phase { color: var(--text-muted); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.75rem; }
+
+    .disclaimer {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      padding: 0 4px;
+    }
+
+    @media (max-width: 900px) {
+      .main { grid-template-columns: 1fr; padding: 16px; }
+      .inputs { position: static; }
+      header { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back" href="index.html">&larr; Tools</a>
+    <span class="header-divider">/</span>
+    <div class="logo">&#9832;</div>
+    <h1>Retirement Planner</h1>
+  </header>
+
+  <div class="main">
+    <!-- ================= Inputs ================= -->
+    <div class="inputs" id="inputs">
+      <div class="section-title">About you</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="currentAge">Current age</label>
+          <div class="input-wrap"><input type="number" id="currentAge" value="40" min="16" max="100" step="1"></div>
+        </div>
+        <div class="field">
+          <label for="retireAge">Retire at</label>
+          <div class="input-wrap"><input type="number" id="retireAge" value="65" min="30" max="100" step="1"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Accounts today</div>
+      <div class="field">
+        <label for="investments">Investment accounts <span class="hint">401k, IRA, brokerage</span></label>
+        <div class="input-wrap"><span class="prefix">$</span><input type="number" id="investments" class="has-prefix" value="250000" min="0" step="1000"></div>
+      </div>
+      <div class="field">
+        <label for="cash">Cash savings</label>
+        <div class="input-wrap"><span class="prefix">$</span><input type="number" id="cash" class="has-prefix" value="25000" min="0" step="1000"></div>
+      </div>
+
+      <div class="section-title">Income &amp; saving</div>
+      <div class="field">
+        <label for="salary">Annual salary <span class="hint">gross</span></label>
+        <div class="input-wrap"><span class="prefix">$</span><input type="number" id="salary" class="has-prefix" value="100000" min="0" step="1000"></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="saveRate">Saved / yr</label>
+          <div class="input-wrap"><input type="number" id="saveRate" class="has-suffix" value="15" min="0" max="100" step="0.5"><span class="suffix">%</span></div>
+        </div>
+        <div class="field">
+          <label for="raise">Annual raise</label>
+          <div class="input-wrap"><input type="number" id="raise" class="has-suffix" value="3" min="0" max="20" step="0.1"><span class="suffix">%</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">Retirement</div>
+      <div class="field">
+        <label for="expenses">Annual expenses <span class="hint">today's dollars</span></label>
+        <div class="input-wrap"><span class="prefix">$</span><input type="number" id="expenses" class="has-prefix" value="60000" min="0" step="1000"></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="ssMonthly">Soc. Sec. / mo</label>
+          <div class="input-wrap"><span class="prefix">$</span><input type="number" id="ssMonthly" class="has-prefix" value="2000" min="0" step="50"></div>
+        </div>
+        <div class="field">
+          <label for="ssAge">Claim at</label>
+          <div class="input-wrap"><input type="number" id="ssAge" value="67" min="62" max="70" step="1"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Assumptions</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="returnPre">Return, working</label>
+          <div class="input-wrap"><input type="number" id="returnPre" class="has-suffix" value="7" min="-10" max="20" step="0.1"><span class="suffix">%</span></div>
+        </div>
+        <div class="field">
+          <label for="returnPost">Return, retired</label>
+          <div class="input-wrap"><input type="number" id="returnPost" class="has-suffix" value="5" min="-10" max="20" step="0.1"><span class="suffix">%</span></div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="inflation">Inflation</label>
+        <div class="input-wrap"><input type="number" id="inflation" class="has-suffix" value="2.5" min="0" max="15" step="0.1"><span class="suffix">%</span></div>
+      </div>
+    </div>
+
+    <!-- ================= Results ================= -->
+    <div class="results">
+      <div class="verdict" id="verdict">
+        <div class="headline"><span id="verdictText"></span><span class="badge" id="verdictBadge"></span></div>
+        <div class="sub" id="verdictSub"></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Years funded in retirement</div>
+          <div class="value" id="statYears">&ndash;</div>
+          <div class="detail" id="statYearsDetail"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Nest egg at retirement</div>
+          <div class="value" id="statNestEgg">&ndash;</div>
+          <div class="detail">today's dollars</div>
+        </div>
+        <div class="stat">
+          <div class="label">First-year withdrawal</div>
+          <div class="value" id="statWithdrawal">&ndash;</div>
+          <div class="detail" id="statWithdrawalDetail"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Social Security covers</div>
+          <div class="value" id="statSS">&ndash;</div>
+          <div class="detail">of retirement expenses</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          Portfolio balance by age
+          <span class="note">today's dollars &middot; hover for detail</span>
+        </div>
+        <div class="chart-box" id="chartBox">
+          <svg id="chart" viewBox="0 0 900 380" role="img" aria-label="Projected portfolio balance by age, in today's dollars"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+      </div>
+
+      <div class="panel table-panel-wrap">
+        <details class="table-panel">
+          <summary>Year-by-year table</summary>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Age</th>
+                  <th>Phase</th>
+                  <th>Saved</th>
+                  <th>Expenses</th>
+                  <th>Soc. Sec.</th>
+                  <th>Withdrawn</th>
+                  <th>End balance</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <p class="disclaimer">
+        A simplified deterministic model, not financial advice. All amounts shown in today's dollars;
+        the simulation runs in nominal dollars and deflates by your inflation rate. It assumes steady
+        returns (no sequence-of-returns risk), ignores taxes on withdrawals, and treats your Social
+        Security benefit as inflation-adjusted (COLA). Projection stops at age 105.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    const MAX_AGE = 105;
+
+    const FIELDS = [
+      'currentAge', 'retireAge', 'investments', 'cash', 'salary', 'saveRate',
+      'raise', 'expenses', 'ssMonthly', 'ssAge', 'returnPre', 'returnPost', 'inflation'
+    ];
+
+    const $ = (id) => document.getElementById(id);
+
+    const fmtFull = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
+
+    function readInputs() {
+      const v = {};
+      let valid = true;
+      for (const id of FIELDS) {
+        const el = $(id);
+        const n = parseFloat(el.value);
+        const ok = Number.isFinite(n);
+        el.classList.toggle('invalid', !ok);
+        if (!ok) valid = false;
+        v[id] = n;
+      }
+      if (valid && v.retireAge < v.currentAge) {
+        $('retireAge').classList.add('invalid');
+        v.retireAge = v.currentAge; // treat as already retired
+      }
+      return valid ? v : null;
+    }
+
+    // Runs the projection in nominal dollars, one row per year of age.
+    // Returns rows with both nominal and real (today's-dollar) values.
+    function simulate(v) {
+      const infl = v.inflation / 100;
+      const rows = [];
+      let balance = v.investments + v.cash;
+      let salary = v.salary;
+      let depletionAge = null;
+
+      for (let age = v.currentAge; age <= MAX_AGE; age++) {
+        const t = age - v.currentAge + 1;           // years from now at END of this row
+        const working = age < v.retireAge;
+        const deflate = Math.pow(1 + infl, t);
+
+        let saved = 0, expenses = 0, ss = 0, withdrawn = 0;
+
+        if (working) {
+          saved = salary * (v.saveRate / 100);
+          balance = balance * (1 + v.returnPre / 100) + saved;
+          salary *= 1 + v.raise / 100;
+        } else {
+          expenses = v.expenses * deflate;
+          ss = age >= v.ssAge ? v.ssMonthly * 12 * deflate : 0;
+          withdrawn = Math.max(0, expenses - ss);
+          balance = balance * (1 + v.returnPost / 100) - withdrawn;
+        }
+
+        rows.push({
+          age, working,
+          saved: saved / deflate,
+          expenses: expenses / deflate,
+          ss: ss / deflate,
+          withdrawn: withdrawn / deflate,
+          balance: balance / deflate,
+          balanceNominal: balance
+        });
+
+        if (!working && balance < 0 && depletionAge === null) depletionAge = age;
+        if (depletionAge !== null) break;
+      }
+
+      return { rows, depletionAge };
+    }
+
+    function updateVerdict(v, sim) {
+      const verdictEl = $('verdict');
+      const badge = $('verdictBadge');
+      const retYears = sim.depletionAge !== null ? sim.depletionAge - v.retireAge : null;
+      const alreadyRetired = v.retireAge <= v.currentAge;
+      const retireWord = alreadyRetired ? 'retirement (already retired)' : `retirement at ${v.retireAge}`;
+
+      if (sim.depletionAge === null) {
+        verdictEl.className = 'verdict ok';
+        badge.className = 'badge ok';
+        badge.textContent = '✓ On track';
+        $('verdictText').textContent = `Your money lasts beyond age ${MAX_AGE}`;
+        $('verdictSub').textContent =
+          `With ${retireWord}, the projection never runs out before age ${MAX_AGE}. ` +
+          `Savings, growth, and Social Security cover your expenses for the whole plan.`;
+        $('statYears').textContent = `${MAX_AGE - v.retireAge}+`;
+        $('statYearsDetail').textContent = `to age ${MAX_AGE} and beyond`;
+      } else {
+        const shortfall = sim.depletionAge < 90;
+        verdictEl.className = 'verdict ' + (shortfall ? 'err' : 'warn');
+        badge.className = 'badge ' + (shortfall ? 'err' : 'warn');
+        badge.textContent = shortfall ? '⚠ Shortfall' : '⚠ Cutting it close';
+        $('verdictText').textContent = `Money runs out at age ${sim.depletionAge}`;
+        $('verdictSub').textContent =
+          `With ${retireWord}, your portfolio covers about ${retYears} year${retYears === 1 ? '' : 's'} of expenses ` +
+          `before it's depleted at age ${sim.depletionAge}. After that, Social Security would be your only income. ` +
+          `Try saving more, retiring later, or trimming expenses to extend the runway.`;
+        $('statYears').textContent = `${retYears}`;
+        $('statYearsDetail').textContent = `depleted at age ${sim.depletionAge}`;
+      }
+
+      const retRow = sim.rows.find(r => r.age === v.retireAge - 1) || sim.rows[0];
+      const nestEgg = alreadyRetired ? v.investments + v.cash : retRow.balance;
+      $('statNestEgg').textContent = fmtCompact.format(Math.max(0, nestEgg));
+
+      const firstRet = sim.rows.find(r => !r.working);
+      if (firstRet) {
+        $('statWithdrawal').textContent = fmtCompact.format(firstRet.withdrawn);
+        const rate = nestEgg > 0 ? (firstRet.withdrawn / nestEgg) * 100 : 0;
+        $('statWithdrawalDetail').textContent = `${rate.toFixed(1)}% of nest egg`;
+      } else {
+        $('statWithdrawal').textContent = '–';
+        $('statWithdrawalDetail').textContent = '';
+      }
+
+      const ssAnnual = v.ssMonthly * 12;
+      const ssPct = v.expenses > 0 ? Math.min(100, (ssAnnual / v.expenses) * 100) : 0;
+      $('statSS').textContent = `${ssPct.toFixed(0)}%`;
+    }
+
+    function updateTable(sim) {
+      const body = $('tableBody');
+      const cells = sim.rows.map(r => {
+        const bal = r.balance;
+        return `<tr>
+          <td>${r.age}</td>
+          <td class="phase">${r.working ? 'working' : 'retired'}</td>
+          <td>${r.working ? fmtFull.format(r.saved) : '–'}</td>
+          <td>${r.working ? '–' : fmtFull.format(r.expenses)}</td>
+          <td>${r.ss > 0 ? fmtFull.format(r.ss) : '–'}</td>
+          <td>${r.working ? '–' : fmtFull.format(r.withdrawn)}</td>
+          <td class="${bal < 0 ? 'neg' : ''}">${fmtFull.format(bal)}</td>
+        </tr>`;
+      });
+      body.innerHTML = cells.join('');
+    }
+
+    // ---------------- Chart ----------------
+    const CHART = { w: 900, h: 380, mL: 64, mR: 20, mT: 18, mB: 40 };
+    let chartState = null; // { points, xScale, yScale } for hover lookup
+
+    function niceTicks(maxVal, count) {
+      if (maxVal <= 0) return [0, 1];
+      const rough = maxVal / count;
+      const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+      const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= rough) || 10 * mag;
+      const ticks = [];
+      for (let t = 0; t <= maxVal + step * 0.001; t += step) ticks.push(t);
+      return ticks;
+    }
+
+    function drawChart(v, sim) {
+      const svg = $('chart');
+      const { w, h, mL, mR, mT, mB } = CHART;
+      const plotW = w - mL - mR;
+      const plotH = h - mT - mB;
+
+      const pts = sim.rows.map(r => ({ age: r.age, bal: Math.max(0, r.balance), raw: r }));
+      const minAge = v.currentAge;
+      const maxAge = pts[pts.length - 1].age;
+      const maxBal = Math.max(1, ...pts.map(p => p.bal));
+
+      const yTicks = niceTicks(maxBal * 1.05, 5);
+      const yMax = yTicks[yTicks.length - 1];
+
+      const x = (age) => mL + (maxAge === minAge ? 0 : (age - minAge) / (maxAge - minAge) * plotW);
+      const y = (bal) => mT + plotH - (bal / yMax) * plotH;
+
+      let el = '';
+
+      // recessive horizontal gridlines + y labels
+      for (const t of yTicks) {
+        el += `<line x1="${mL}" y1="${y(t)}" x2="${w - mR}" y2="${y(t)}" stroke="#3b4261" stroke-width="1" opacity="0.45"/>`;
+        el += `<text x="${mL - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="#565f89">${fmtCompact.format(t)}</text>`;
+      }
+
+      // x ticks: every 5 years of age
+      const firstTick = Math.ceil(minAge / 5) * 5;
+      for (let age = firstTick; age <= maxAge; age += 5) {
+        el += `<text x="${x(age)}" y="${h - mB + 20}" text-anchor="middle" font-size="11" fill="#565f89">${age}</text>`;
+        el += `<line x1="${x(age)}" y1="${mT + plotH}" x2="${x(age)}" y2="${mT + plotH + 5}" stroke="#3b4261" stroke-width="1"/>`;
+      }
+      el += `<text x="${mL + plotW / 2}" y="${h - 4}" text-anchor="middle" font-size="11" fill="#565f89">Age</text>`;
+
+      // baseline
+      el += `<line x1="${mL}" y1="${mT + plotH}" x2="${w - mR}" y2="${mT + plotH}" stroke="#3b4261" stroke-width="1"/>`;
+
+      // area + line for the single balance series
+      const lineD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.age).toFixed(1)},${y(p.bal).toFixed(1)}`).join('');
+      const areaD = lineD + `L${x(pts[pts.length - 1].age).toFixed(1)},${mT + plotH}L${x(pts[0].age).toFixed(1)},${mT + plotH}Z`;
+      el += `<defs><linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
+               <stop offset="0%" stop-color="#7aa2f7" stop-opacity="0.28"/>
+               <stop offset="100%" stop-color="#7aa2f7" stop-opacity="0.02"/>
+             </linearGradient></defs>`;
+      el += `<path d="${areaD}" fill="url(#fillGrad)"/>`;
+      el += `<path d="${lineD}" fill="none" stroke="#7aa2f7" stroke-width="2" stroke-linejoin="round"/>`;
+
+      // retirement boundary marker
+      if (v.retireAge > minAge && v.retireAge <= maxAge) {
+        const rx = x(v.retireAge);
+        el += `<line x1="${rx}" y1="${mT}" x2="${rx}" y2="${mT + plotH}" stroke="#565f89" stroke-width="1" stroke-dasharray="4 4"/>`;
+        el += `<text x="${rx + 5}" y="${mT + 12}" font-size="11" fill="#565f89">Retire ${v.retireAge}</text>`;
+      }
+
+      // depletion marker (status color + explicit label, not color alone)
+      if (sim.depletionAge !== null) {
+        const dx = x(sim.depletionAge);
+        el += `<circle cx="${dx}" cy="${y(0)}" r="5" fill="#f7768e" stroke="#24283b" stroke-width="2"/>`;
+        const anchor = dx > w - 150 ? 'end' : 'start';
+        const tx = dx > w - 150 ? dx - 8 : dx + 8;
+        el += `<text x="${tx}" y="${y(0) - 10}" text-anchor="${anchor}" font-size="11" font-weight="600" fill="#f7768e">Funds depleted · ${sim.depletionAge}</text>`;
+      }
+
+      // hover crosshair + dot (populated on mousemove)
+      el += `<g id="hoverLayer" style="display:none">
+               <line id="hoverLine" x1="0" y1="${mT}" x2="0" y2="${mT + plotH}" stroke="#c0caf5" stroke-width="1" opacity="0.35"/>
+               <circle id="hoverDot" r="4.5" fill="#7aa2f7" stroke="#24283b" stroke-width="2"/>
+             </g>`;
+
+      svg.innerHTML = el;
+      chartState = { pts, x, y, minAge, maxAge };
+    }
+
+    // ---------------- Hover / tooltip ----------------
+    const svgEl = $('chart');
+    const tooltipEl = $('tooltip');
+    const chartBoxEl = $('chartBox');
+
+    function onChartMove(evt) {
+      if (!chartState) return;
+      const rect = svgEl.getBoundingClientRect();
+      const scaleX = CHART.w / rect.width;
+      const mx = (evt.clientX - rect.left) * scaleX;
+
+      const { pts, x, y, minAge, maxAge } = chartState;
+      const frac = (mx - CHART.mL) / (CHART.w - CHART.mL - CHART.mR);
+      const age = Math.round(minAge + frac * (maxAge - minAge));
+      const p = pts.find(q => q.age === Math.min(maxAge, Math.max(minAge, age)));
+      if (!p) { onChartLeave(); return; }
+
+      const hl = $('hoverLayer');
+      hl.style.display = '';
+      const px = x(p.age), py = y(p.bal);
+      $('hoverLine').setAttribute('x1', px);
+      $('hoverLine').setAttribute('x2', px);
+      $('hoverDot').setAttribute('cx', px);
+      $('hoverDot').setAttribute('cy', py);
+
+      const r = p.raw;
+      let rowsHtml = `<div class="tt-title">Age ${r.age} · ${r.working ? 'working' : 'retired'}</div>`;
+      rowsHtml += `<div class="tt-row"><span>Balance</span><span class="v">${fmtFull.format(r.balance)}</span></div>`;
+      if (r.working) {
+        rowsHtml += `<div class="tt-row"><span>Saved</span><span class="v">${fmtFull.format(r.saved)}</span></div>`;
+      } else {
+        rowsHtml += `<div class="tt-row"><span>Expenses</span><span class="v">${fmtFull.format(r.expenses)}</span></div>`;
+        if (r.ss > 0) rowsHtml += `<div class="tt-row"><span>Soc. Sec.</span><span class="v">${fmtFull.format(r.ss)}</span></div>`;
+        rowsHtml += `<div class="tt-row"><span>Withdrawn</span><span class="v">${fmtFull.format(r.withdrawn)}</span></div>`;
+      }
+      tooltipEl.innerHTML = rowsHtml;
+      tooltipEl.style.opacity = '1';
+
+      const boxRect = chartBoxEl.getBoundingClientRect();
+      const ttW = tooltipEl.offsetWidth;
+      let left = (px / scaleX) + 14;
+      if (left + ttW > boxRect.width - 8) left = (px / scaleX) - ttW - 14;
+      let top = (py / scaleX) - 10;
+      top = Math.max(4, Math.min(top, boxRect.height - tooltipEl.offsetHeight - 4));
+      tooltipEl.style.left = left + 'px';
+      tooltipEl.style.top = top + 'px';
+    }
+
+    function onChartLeave() {
+      const hl = $('hoverLayer');
+      if (hl) hl.style.display = 'none';
+      tooltipEl.style.opacity = '0';
+    }
+
+    svgEl.addEventListener('mousemove', onChartMove);
+    svgEl.addEventListener('mouseleave', onChartLeave);
+
+    // ---------------- Wire up ----------------
+    function recalc() {
+      const v = readInputs();
+      if (!v) return;
+      const sim = simulate(v);
+      updateVerdict(v, sim);
+      drawChart(v, sim);
+      updateTable(sim);
+    }
+
+    for (const id of FIELDS) $(id).addEventListener('input', recalc);
+    recalc();
+  </script>
+</body>
+</html>
