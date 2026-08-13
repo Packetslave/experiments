@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Unifi on Notes</title><link>https://packetslave.github.io/experiments/blog/tags/unifi/</link><description>Recent content in Unifi on Notes</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Thu, 13 Aug 2026 17:13:00 +0000</lastBuildDate><atom:link href="https://packetslave.github.io/experiments/blog/tags/unifi/index.xml" rel="self" type="application/rss+xml"/><item><title>UniFi Dream Machine SE recovery notes</title><link>https://packetslave.github.io/experiments/blog/posts/udm-se-recovery-notes/</link><pubDate>Thu, 13 Aug 2026 17:13:00 +0000</pubDate><guid>https://packetslave.github.io/experiments/blog/posts/udm-se-recovery-notes/</guid><description>&lt;p>The short version: if the recovery IP on a UDM-SE does not respond, remove
+any SFP+ module and try again.&lt;/p>
+&lt;p>To boot the device into recovery mode, hold the reset button with a paperclip
+while you power it on. The device then binds the recovery IP, &lt;code>192.168.1.30&lt;/code>,
+to the first interface it sees as &amp;ldquo;up&amp;rdquo;.&lt;/p>
+&lt;p>Here is the trap. An installed SFP+ module will probably report &amp;ldquo;up&amp;rdquo; before
+any of the RJ45 LAN ports do. The recovery IP binds to the SFP+ interface,
+and you sit there wondering why you cannot ping &lt;code>192.168.1.30&lt;/code> from a LAN
+port. Remove the SFP+ module, power the device back into recovery mode, and
+the LAN ports work.&lt;/p></description></item></channel></rss>
