@@ -111,6 +111,8 @@ blog/
 
 Use the `blog-post` skill (`.claude/skills/blog-post/SKILL.md`) — it covers front matter, file naming, and publishing. Short version: add a markdown file to `blog/content/posts/` on `main`; the front matter needs `title`, `date` (RFC 3339 UTC), `slug`, and optional `tags`. Posts with `draft: true` are excluded from the build.
 
+**Writing style:** blog prose follows ASD-STE100 Simplified Technical English and the GOV.UK style guides. The skill has the distilled rules; consult the source guides for anything it doesn't cover.
+
 ### Deployment
 
 `.github/workflows/blog.yml` runs on any push to `main` touching `blog/**`: it builds with Hugo (pinned version, `--minify`) and deploys `blog/public/` to the `gh-pages` branch under `blog/` via `peaceiris/actions-gh-pages` with `destination_dir: blog` — the static tools at the `gh-pages` root are never touched. **Never deploy the blog by hand**; unlike `docs/`, the blog does not use the manual gh-pages push flow.
