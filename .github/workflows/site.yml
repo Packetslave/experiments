@@ -1,0 +1,46 @@
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "blog/**"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.148.2"
+          extended: true
+
+      - name: Assemble site
+        run: |
+          mkdir -p site
+          cp -r docs/. site/
+          hugo --minify --source blog --destination "$GITHUB_WORKSPACE/site/blog"
+
+      # Publishes the assembled tree as the entire gh-pages branch, so
+      # gh-pages always mirrors main. Files on gh-pages that are not
+      # produced by this job are removed on the next deploy.
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: site
+          commit_message: "Deploy site: ${{ github.event.head_commit.message || 'manual run' }}"

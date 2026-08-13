@@ -28,7 +28,7 @@ From GOV.UK:
 - Make link text describe the destination; never "click here".
 
 Posts live in `blog/content/posts/` and are published automatically: any push
-to `main` that touches `blog/**` triggers `.github/workflows/blog.yml`, which
+to `main` that touches `blog/**` triggers `.github/workflows/site.yml`, which
 builds the Hugo site and deploys it to `gh-pages/blog/`. The live site is
 https://packetslave.github.io/experiments/blog/
 
@@ -69,7 +69,7 @@ https://packetslave.github.io/experiments/blog/
 5. **Confirm.** Tell the user the post URL:
    `https://packetslave.github.io/experiments/blog/posts/<slug>/`
    and note that the deploy takes a minute or two. If asked to verify, check
-   the "Deploy blog" run via the GitHub Actions MCP tools rather than polling
+   the "Deploy site" run via the GitHub Actions MCP tools rather than polling
    the URL.
 
 ## Editing or removing a post

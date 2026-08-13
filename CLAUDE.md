@@ -71,20 +71,19 @@ Static single-page browser utilities, published at **https://packetslave.github.
 
 ```
 docs/
-  index.html            # landing page listing all tools
-  json-formatter.html   # JSON pretty-printer with syntax highlighting
+  index.html               # landing page listing all tools
+  json-formatter.html      # JSON pretty-printer with syntax highlighting
+  regex-tester.html        # live regex matching with groups and flags
+  blackjack-trainer.html   # basic strategy practice with session stats
+  retirement-planner.html  # retirement savings projection with charts
 ```
 
 ### GitHub Pages setup
 
-- Served from the `gh-pages` branch, root folder.
-- A `.nojekyll` file at the `gh-pages` root bypasses Jekyll so files are served as-is.
-- The `docs/` folder on `main`/feature branches is the source of truth; changes must also be pushed to `gh-pages` to go live.
-- There is no build step — edit the HTML files directly.
-
-### Pushing changes live
-
-Because this environment doesn't have `gh` CLI access, use the `mcp__github__create_or_update_file` or `mcp__github__push_files` MCP tools to commit directly to `gh-pages`. Always provide the current blob SHA when updating an existing file (`git rev-parse gh-pages:<path>` won't work for remote-only branches; fetch the SHA via `mcp__github__get_file_contents` instead).
+- Served from the `gh-pages` branch, root folder. A `.nojekyll` file at the root bypasses Jekyll so files are served as-is.
+- **`main` is the source of truth and `gh-pages` is build output — never edit or push to `gh-pages` by hand.** `.github/workflows/site.yml` rebuilds the entire branch on every push to `main` that touches `docs/**` or `blog/**`: it copies `docs/` to the root and builds the Hugo blog into `blog/`. Anything on `gh-pages` that the workflow did not produce is deleted on the next deploy, so hand-pushed files will be lost.
+- To go live, land changes on `main` (directly or by merging a branch). To redeploy without a change, trigger "Deploy site" manually via `workflow_dispatch`.
+- There is no build step for tools — edit the HTML files directly.
 
 ### Conventions
 
@@ -115,7 +114,7 @@ Use the `blog-post` skill (`.claude/skills/blog-post/SKILL.md`) — it covers fr
 
 ### Deployment
 
-`.github/workflows/blog.yml` runs on any push to `main` touching `blog/**`: it builds with Hugo (pinned version, `--minify`) and deploys `blog/public/` to the `gh-pages` branch under `blog/` via `peaceiris/actions-gh-pages` with `destination_dir: blog` — the static tools at the `gh-pages` root are never touched. **Never deploy the blog by hand**; unlike `docs/`, the blog does not use the manual gh-pages push flow.
+The shared `.github/workflows/site.yml` workflow (see the docs/ section above) builds the blog with Hugo (pinned version, `--minify`) and deploys it to `blog/` on `gh-pages` together with the tools. **Never deploy the blog by hand.**
 
 ### Local preview
 
@@ -127,6 +126,5 @@ hugo --minify             # production build into blog/public/ (gitignored)
 ### Adding a new tool
 
 1. Create `docs/<tool-name>.html` following the shared theme and conventions above.
-2. Add a card for it in `docs/index.html` (`.grid > .card`).
-3. Commit both to the feature branch.
-4. Push both to `gh-pages` using the MCP file tools.
+2. Add a card for it in `docs/index.html` (`.grid > .card`) — every tool must have a card, so the index stays a complete inventory.
+3. Land both on `main` (directly or via a branch and merge). The "Deploy site" workflow publishes them; no manual `gh-pages` step.
