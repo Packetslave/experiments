@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository purpose
 
-A playground for distributed systems algorithm experiments and browser-based utilities. Contains a Go gRPC module (`grpc/`) and a collection of static web tools (`docs/`) published to GitHub Pages. Additional experiments may be added as sibling directories at the repo root.
+A playground for distributed systems algorithm experiments and browser-based utilities. Contains a Go gRPC module (`grpc/`), a collection of static web tools (`docs/`) published to GitHub Pages, and a Hugo blog (`blog/`) deployed to the same Pages site. Additional experiments may be added as sibling directories at the repo root.
 
 ## grpc/ module
 
@@ -92,6 +92,37 @@ Because this environment doesn't have `gh` CLI access, use the `mcp__github__cre
 - All pages share a Tokyo Night dark theme (`--bg: #1a1b26`, `--accent: #7aa2f7`, etc.) via CSS custom properties defined in `:root`.
 - Every page includes `<link rel="icon" href="data:image/svg+xml,...">` with an inline SVG favicon (accent-blue rounded square) to prevent 404s in request logs. Add this to any new page.
 - Tool pages link back to the index via `<a class="back" href="index.html">← Tools</a>` in the header.
+
+## blog/ — Hugo blog
+
+Published at **https://packetslave.github.io/experiments/blog/**. No external theme — layouts live in `blog/layouts/` and share the Tokyo Night palette with `docs/`.
+
+### Structure
+
+```
+blog/
+  hugo.toml               # site config (baseURL, taxonomies, syntax highlighting)
+  archetypes/default.md   # front matter template for new posts
+  content/posts/          # one markdown file per post: YYYY-MM-DD-<slug>.md
+  layouts/                # self-contained templates (baseof has embedded CSS)
+```
+
+### Posting
+
+Use the `blog-post` skill (`.claude/skills/blog-post/SKILL.md`) — it covers front matter, file naming, and publishing. Short version: add a markdown file to `blog/content/posts/` on `main`; the front matter needs `title`, `date` (RFC 3339 UTC), `slug`, and optional `tags`. Posts with `draft: true` are excluded from the build.
+
+**Writing style:** blog prose follows ASD-STE100 Simplified Technical English and the GOV.UK style guides. The skill has the distilled rules; consult the source guides for anything it doesn't cover.
+
+### Deployment
+
+`.github/workflows/blog.yml` runs on any push to `main` touching `blog/**`: it builds with Hugo (pinned version, `--minify`) and deploys `blog/public/` to the `gh-pages` branch under `blog/` via `peaceiris/actions-gh-pages` with `destination_dir: blog` — the static tools at the `gh-pages` root are never touched. **Never deploy the blog by hand**; unlike `docs/`, the blog does not use the manual gh-pages push flow.
+
+### Local preview
+
+```bash
+cd blog && hugo server    # http://localhost:1313/experiments/blog/
+hugo --minify             # production build into blog/public/ (gitignored)
+```
 
 ### Adding a new tool
 

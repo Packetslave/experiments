@@ -1,0 +1,22 @@
+baseURL = "https://packetslave.github.io/experiments/blog/"
+languageCode = "en-us"
+title = "Notes"
+
+[pagination]
+  pagerSize = 25
+
+[taxonomies]
+  tag = "tags"
+
+[params]
+  description = "Short notes and longer thoughts, posted from wherever I happen to be."
+
+[markup]
+  [markup.highlight]
+    style = "tokyonight-night"
+    noClasses = true
+  [markup.goldmark.renderer]
+    unsafe = true
+
+[outputs]
+  home = ["html", "rss"]
