@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on Notes</title><link>https://packetslave.github.io/experiments/blog/posts/</link><description>Recent content in Posts on Notes</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Thu, 13 Aug 2026 00:38:00 +0000</lastBuildDate><atom:link href="https://packetslave.github.io/experiments/blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>How symbolic and hard links work on Unix</title><link>https://packetslave.github.io/experiments/blog/posts/symbolic-and-hard-links/</link><pubDate>Thu, 13 Aug 2026 00:38:00 +0000</pubDate><guid>https://packetslave.github.io/experiments/blog/posts/symbolic-and-hard-links/</guid><description>&lt;p>Unix file systems support 2 kinds of link: hard links and symbolic links.
+Both come from the same command, &lt;code>ln&lt;/code>, but they work in very different ways.
+This post explains how each kind works. It then covers where Linux and the
+BSDs, including macOS, disagree.&lt;/p>
+&lt;h2 id="inodes-first">Inodes first&lt;/h2>
+&lt;p>A file on disk is not really a name. It is an inode: a numbered record that
+holds the file&amp;rsquo;s metadata and points to its data blocks. The inode stores the
+owner, the permissions, the timestamps, and the size. It does not store the
+file name.&lt;/p></description></item><item><title>Hello, world</title><link>https://packetslave.github.io/experiments/blog/posts/hello-world/</link><pubDate>Wed, 12 Aug 2026 23:00:00 +0000</pubDate><guid>https://packetslave.github.io/experiments/blog/posts/hello-world/</guid><description>&lt;p>This blog is built with &lt;a href="https://gohugo.io/">Hugo&lt;/a> and lives in the same
+repository as my other experiments. There&amp;rsquo;s no theme dependency and no build
+tooling to maintain — just markdown files in &lt;code>blog/content/posts/&lt;/code> and a
+handful of templates.&lt;/p>
+&lt;p>The fun part is the publishing workflow: I can post from my phone by opening
+a Claude Code session and saying &amp;ldquo;new blog post about X.&amp;rdquo; Claude writes the
+markdown, commits it to &lt;code>main&lt;/code>, and a GitHub Actions workflow builds the site
+and deploys it here.&lt;/p></description></item></channel></rss>

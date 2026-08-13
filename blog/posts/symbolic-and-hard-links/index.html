@@ -1,0 +1,65 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>How symbolic and hard links work on Unix &#183; Notes</title><meta name=description content="Short notes and longer thoughts, posted from wherever I happen to be."><link rel=icon href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%237aa2f7'/></svg>"><style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}:root{--bg:#1a1b26;--surface:#24283b;--surface2:#2a2f45;--border:#3b4261;--text:#c0caf5;--text-muted:#565f89;--accent:#7aa2f7;--accent-hover:#9ab8ff;--radius:8px}body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,segoe ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;line-height:1.6}header.site{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}header.site .logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--bg);text-decoration:none;flex-shrink:0}header.site .site-title{font-size:1.25rem;font-weight:600;letter-spacing:-.02em;color:var(--text);text-decoration:none}header.site nav{margin-left:auto;display:flex;gap:18px}header.site nav a{color:var(--text-muted);text-decoration:none;font-size:.875rem}header.site nav a:hover{color:var(--accent)}.main{flex:1;max-width:720px;width:100%;margin:0 auto;padding:48px 32px}.intro{margin-bottom:40px}.intro h2{font-size:1.75rem;font-weight:700;letter-spacing:-.03em;margin-bottom:8px}.intro p{color:var(--text-muted);font-size:.95rem}h3.year{font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin:32px 0 8px}ul.post-list{list-style:none}ul.post-list li a{display:flex;align-items:baseline;gap:16px;padding:10px 12px;margin:0 -12px;border-radius:var(--radius);text-decoration:none;color:inherit}ul.post-list li a:hover{background:var(--surface)}ul.post-list .post-date{color:var(--text-muted);font-size:.8rem;font-variant-numeric:tabular-nums;flex-shrink:0;width:3.5em}ul.post-list .post-title{font-weight:500}article header.post{border:none;padding:0;margin-bottom:32px;display:block}article header.post h1{font-size:2rem;font-weight:700;letter-spacing:-.03em;line-height:1.25;margin-bottom:10px}.post-meta{color:var(--text-muted);font-size:.875rem;display:flex;flex-wrap:wrap;gap:12px;align-items:center}.tag{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:1px 10px;font-size:.75rem;color:var(--text-muted);text-decoration:none}.tag:hover{color:var(--accent);border-color:var(--accent)}.prose h2,.prose h3,.prose h4{margin:1.6em 0 .5em;letter-spacing:-.02em;line-height:1.3}.prose h2{font-size:1.4rem}.prose h3{font-size:1.15rem}.prose p,.prose ul,.prose ol,.prose blockquote{margin-bottom:1em}.prose ul,.prose ol{padding-left:1.4em}.prose a{color:var(--accent);text-decoration:none}.prose a:hover{color:var(--accent-hover);text-decoration:underline}.prose blockquote{border-left:3px solid var(--border);padding-left:16px;color:var(--text-muted)}.prose img{max-width:100%;border-radius:var(--radius)}.prose hr{border:none;border-top:1px solid var(--border);margin:2em 0}.prose code{font-family:ui-monospace,sf mono,Menlo,Consolas,monospace;font-size:.875em;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.1em .4em}.prose pre{background:var(--surface) !important;border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow-x:auto;margin-bottom:1em}.prose pre code{background:0 0;border:none;padding:0;font-size:.85rem}.prose .highlight{margin-bottom:1em}.prose .highlight pre{margin-bottom:0}.back{display:inline-block;margin-top:40px;color:var(--text-muted);text-decoration:none;font-size:.875rem}.back:hover{color:var(--accent)}footer.site{padding:20px 32px;border-top:1px solid var(--border);color:var(--text-muted);font-size:.8rem;display:flex;gap:16px}footer.site a{color:var(--text-muted);text-decoration:none}footer.site a:hover{color:var(--accent)}@media(max-width:600px){.main{padding:32px 16px}header.site,footer.site{padding:16px}article header.post h1{font-size:1.5rem}}</style></head><body><header class=site><a class=logo href=/experiments/blog/>&#9998;</a>
+<a class=site-title href=/experiments/blog/>Notes</a><nav><a href=/experiments/blog/tags/>Tags</a>
+<a href=/experiments/blog/index.xml>RSS</a>
+<a href=https://packetslave.github.io/experiments/>Tools</a></nav></header><div class=main><article><header class=post><h1>How symbolic and hard links work on Unix</h1><div class=post-meta><time datetime=2026-08-13>August 13, 2026</time>
+<a class=tag href=/experiments/blog/tags/unix/>Unix</a>
+<a class=tag href=/experiments/blog/tags/linux/>Linux</a>
+<a class=tag href=/experiments/blog/tags/macos/>Macos</a>
+<a class=tag href=/experiments/blog/tags/filesystems/>Filesystems</a></div></header><div class=prose><p>Unix file systems support 2 kinds of link: hard links and symbolic links.
+Both come from the same command, <code>ln</code>, but they work in very different ways.
+This post explains how each kind works. It then covers where Linux and the
+BSDs, including macOS, disagree.</p><h2 id=inodes-first>Inodes first</h2><p>A file on disk is not really a name. It is an inode: a numbered record that
+holds the file&rsquo;s metadata and points to its data blocks. The inode stores the
+owner, the permissions, the timestamps, and the size. It does not store the
+file name.</p><p>Names live in directories. A directory is a table that maps names to inode
+numbers. Each mapping is a link. Run <code>ls -i</code> to see the inode number behind
+each name.</p><h2 id=hard-links>Hard links</h2><p>A hard link is a second name for the same inode.</p><div class=highlight><pre tabindex=0 style=color:#c0caf5;background-color:#1a1b26;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console><span style=display:flex><span>$ <span style=color:#9ece6a>echo</span> hello &gt; a.txt
+</span></span><span style=display:flex><span>$ ln a.txt b.txt
+</span></span><span style=display:flex><span>$ ls -li a.txt b.txt
+</span></span><span style=display:flex><span>1234567 -rw-r--r-- 2 brian staff 6 Aug 13 00:38 a.txt
+</span></span><span style=display:flex><span>1234567 -rw-r--r-- 2 brian staff 6 Aug 13 00:38 b.txt
+</span></span></code></pre></div><p>Both names point to inode 1234567. Neither name is the original; the 2 names
+are equal. The number after the permissions is the link count. It shows how
+many names the inode has.</p><p><code>rm</code> does not delete files. It removes a name and decreases the link count.
+The kernel frees the data only when the count reaches 0 and no process holds
+the file open. This is why you can delete a log file while a server writes to
+it. The disk space comes back only when the server closes the file.</p><p>Hard links have 2 firm rules:</p><ul><li>They cannot cross file systems. An inode number only means something inside
+1 file system.</li><li>You cannot make one to a directory. That could create loops that path
+resolution cannot handle.</li></ul><h2 id=symbolic-links>Symbolic links</h2><p>A symbolic link (symlink) is a small file that contains a path, plus a flag
+that tells the kernel to follow that path.</p><div class=highlight><pre tabindex=0 style=color:#c0caf5;background-color:#1a1b26;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console><span style=display:flex><span>$ ln -s a.txt c.txt
+</span></span><span style=display:flex><span>$ ls -l c.txt
+</span></span><span style=display:flex><span>lrwxrwxrwx 1 brian staff 5 Aug 13 00:39 c.txt -&gt; a.txt
+</span></span></code></pre></div><p>The kernel resolves the stored path each time you open the link. This makes
+symlinks flexible. They can cross file systems, and they can point to
+directories. It also makes them fragile. If you remove <code>a.txt</code>, the symlink
+stays and points at nothing. This is a dangling link.</p><p>A relative target is resolved from the directory that holds the link, not
+from your current directory. This is the most common way to create a dangling
+link by accident.</p><h2 id=which-one-to-use>Which one to use</h2><p>Use a symlink by default. It is visible in <code>ls</code>, it can point anywhere, and
+you can see where it goes. Hard links are the right tool when many names must
+share 1 file&rsquo;s storage. Backup tools such as <code>rsync --link-dest</code> use them to
+build snapshots that share every unchanged file.</p><h2 id=where-linux-and-bsd-differ>Where Linux and BSD differ</h2><p>The concepts above are identical everywhere. The tools and the edge cases are
+not.</p><h3 id=the-stat-command>The stat command</h3><p>GNU and BSD <code>stat</code> share a name and almost nothing else. On Linux,
+<code>stat -c '%i %h' file</code> prints the inode and link count. On macOS and FreeBSD,
+the same query is <code>stat -f '%i %l' file</code>. Scripts that must run on both often
+fall back to <code>ls -li</code>.</p><h3 id=resolving-a-link-chain>Resolving a link chain</h3><p>GNU coreutils has had <code>readlink -f</code> and <code>realpath</code> for decades. macOS added
+both in macOS 12.3. On older versions you need Homebrew coreutils
+(<code>greadlink -f</code>) or a language runtime.</p><h3 id=replacing-a-symlink-to-a-directory>Replacing a symlink to a directory</h3><p><code>ln -sf new current</code> does the wrong thing when <code>current</code> is a symlink to a
+directory: <code>ln</code> follows the old link and creates <code>new</code> inside the directory.
+You must tell <code>ln</code> not to follow it. The flag is <code>-n</code> in GNU ln and <code>-h</code> in
+BSD ln. Modern BSDs also accept <code>-n</code>, so <code>ln -sfn</code> is the portable spelling.
+Deploy scripts that flip a <code>current</code> symlink hit this constantly.</p><h3 id=symlink-permissions>Symlink permissions</h3><p>The mode on a symlink (<code>lrwxrwxrwx</code>) is decoration on Linux. The kernel
+ignores it, and <code>chmod</code> on a symlink changes the target instead. BSD kernels
+have <code>lchmod</code>, so on macOS <code>chmod -h</code> changes the link&rsquo;s own mode. Every
+system still ignores that mode when it follows the link. This mostly matters
+to archive tools that restore modes exactly.</p><h3 id=hard-links-to-directories>Hard links to directories</h3><p>Linux has never allowed them. Apple&rsquo;s old HFS+ file system did, as a private
+feature, and Time Machine was built on it: an unchanged directory in each
+backup was a hard link to the same directory in the previous backup. APFS
+dropped the feature and uses file system snapshots instead.</p><h2 id=2-macos-extras>2 macOS extras</h2><p><strong>Firmlinks.</strong> Since macOS Catalina, the system volume is read-only. A fixed
+set of firmlinks grafts it onto the writable data volume, so <code>/Applications</code>
+and <code>/Users</code> feel like 1 tree. The pairs are listed in
+<code>/usr/share/firmlinks</code>. You cannot create your own.</p><p><strong>Finder aliases are not symlinks.</strong> An alias is a Finder-level bookmark that
+tracks its target even when the target moves. The shell sees it as an opaque
+data file, and <code>cd</code> into one fails. If a command line tool needs to follow
+it, make a symlink instead.</p><h2 id=the-short-version>The short version</h2><p>A hard link is another name for the same inode. A symlink is a file that
+contains a path. Almost everything else follows from those 2 sentences.</p></div></article><a class=back href=/experiments/blog/>&larr; All posts</a></div><footer class=site><span>&copy; 2026</span>
+<a href=/experiments/blog/index.xml>RSS</a></footer></body></html>

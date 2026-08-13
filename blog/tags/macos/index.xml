@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Macos on Notes</title><link>https://packetslave.github.io/experiments/blog/tags/macos/</link><description>Recent content in Macos on Notes</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Thu, 13 Aug 2026 00:38:00 +0000</lastBuildDate><atom:link href="https://packetslave.github.io/experiments/blog/tags/macos/index.xml" rel="self" type="application/rss+xml"/><item><title>How symbolic and hard links work on Unix</title><link>https://packetslave.github.io/experiments/blog/posts/symbolic-and-hard-links/</link><pubDate>Thu, 13 Aug 2026 00:38:00 +0000</pubDate><guid>https://packetslave.github.io/experiments/blog/posts/symbolic-and-hard-links/</guid><description>&lt;p>Unix file systems support 2 kinds of link: hard links and symbolic links.
+Both come from the same command, &lt;code>ln&lt;/code>, but they work in very different ways.
+This post explains how each kind works. It then covers where Linux and the
+BSDs, including macOS, disagree.&lt;/p>
+&lt;h2 id="inodes-first">Inodes first&lt;/h2>
+&lt;p>A file on disk is not really a name. It is an inode: a numbered record that
+holds the file&amp;rsquo;s metadata and points to its data blocks. The inode stores the
+owner, the permissions, the timestamps, and the size. It does not store the
+file name.&lt;/p></description></item></channel></rss>
