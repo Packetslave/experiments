@@ -14,9 +14,15 @@
       <div class="sidebar-title-wrapper"><h3 class="custom-sidebar-title">Recent Posts</h3><div class="sidebar-title-line"></div></div>
       <ul>
         {{ range . }}
-        <li>
-          <a href="{{ .RelPermalink }}">{{ .Title }}</a>
-          <div class="recent-post-widget-date">{{ .Date.Format "02 Jan 2006" }}</div>
+        <li class="recent-post-widget">
+          {{ with .Params.image }}
+          <a class="recent-post-widget-thumbnail" href="{{ $.RelPermalink }}"><img src="{{ . | relURL }}" alt="{{ $.Title }}"></a>
+          {{ end }}
+          <div class="recent-post-widget-context">
+            <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+            <div class="recent-post-widget-date">{{ .Date.Format "02 Jan 2006" }}</div>
+          </div>
+          <div class="clear"></div>
         </li>
         {{ end }}
       </ul>

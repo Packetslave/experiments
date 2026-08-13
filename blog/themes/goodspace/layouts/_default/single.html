@@ -4,7 +4,10 @@
 <div class="gdl-page-item">
   <article class="blog-single">
     {{ with .Params.image }}
-    <div class="blog-thumbnail-image"><img src="{{ . | relURL }}" alt="{{ $.Title }}"></div>
+    <div class="blog-thumbnail-image">
+      <img src="{{ . | relURL }}" alt="{{ $.Title }}">
+      {{ with $.Params.imageCredit }}<div class="image-credit">{{ . }}</div>{{ end }}
+    </div>
     {{ end }}
     {{ partial "post-info.html" . }}
     <div class="single-context">

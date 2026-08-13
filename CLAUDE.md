@@ -106,7 +106,7 @@ blog/
   themes/goodspace/       # ported theme: templates + one hand-written CSS file
 ```
 
-Do not add a root `blog/layouts/` directory — files there silently override the theme. Extend the theme in `blog/themes/goodspace/` instead. Optional front matter: `image` (featured image), `caption` (subtitle in the title bar).
+Do not add a root `blog/layouts/` directory — files there silently override the theme. Extend the theme in `blog/themes/goodspace/` instead. Optional front matter: `image` (B&W hero, 1280x480, stored in `blog/static/images/posts/`), `imageCredit` (attribution shown under the hero), `caption` (subtitle in the title bar). Hero images must be CC0/public-domain or otherwise licensed for use; record the source in `imageCredit`.
 
 ### Posting
 

@@ -3,6 +3,8 @@ title: "How symbolic and hard links work on Unix"
 date: 2026-08-13T00:38:00Z
 slug: "symbolic-and-hard-links"
 tags: ["unix", "linux", "macos", "filesystems"]
+image: "images/posts/symbolic-and-hard-links.jpg"
+imageCredit: "Photo: Brooklyn Museum Collection, no known copyright restrictions (via scikit-image)"
 draft: false
 ---
 

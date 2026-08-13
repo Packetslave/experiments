@@ -1,5 +1,4 @@
 <div class="blog-item blog-item2">
-  <h2 class="blog-thumbnail-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
   {{ with .Params.image }}
   <div class="blog-thumbnail-image">
     <a href="{{ $.RelPermalink }}"><img src="{{ . | relURL }}" alt="{{ $.Title }}"></a>
@@ -7,8 +6,9 @@
   {{ end }}
   {{ partial "post-info.html" . }}
   <div class="blog-thumbnail-context">
+    <h2 class="blog-thumbnail-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
     <p>{{ .Summary }}</p>
-    <a class="gdl-button blog-read-more" href="{{ .RelPermalink }}">Read More</a>
+    <a class="blog-read-more" href="{{ .RelPermalink }}">Read More</a>
   </div>
   <div class="clear"></div>
 </div>

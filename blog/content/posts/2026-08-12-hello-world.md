@@ -3,6 +3,8 @@ title: "Hello, world"
 date: 2026-08-12T23:00:00Z
 slug: "hello-world"
 tags: ["meta"]
+image: "images/posts/hello-world.jpg"
+imageCredit: "Photo: Rachel Michetti, CC0 (via scikit-image)"
 draft: false
 ---
 

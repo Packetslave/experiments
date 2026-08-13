@@ -3,6 +3,8 @@ title: "UniFi Dream Machine SE recovery notes"
 date: 2026-08-13T17:13:00Z
 slug: "udm-se-recovery-notes"
 tags: ["networking", "unifi"]
+image: "images/posts/udm-se-recovery-notes.jpg"
+imageCredit: "Photo: SpaceX, public domain (via scikit-image)"
 draft: false
 ---
 
