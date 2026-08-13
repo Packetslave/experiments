@@ -1,0 +1,8 @@
+name = "GoodSpace"
+license = "Mixed - see README.md"
+description = "Hugo port of the blog templates from the GoodLayers GoodSpace WordPress theme (blog with right sidebar + single post)."
+homepage = "https://goodlayers.com"
+min_version = "0.100.0"
+
+[author]
+  name = "Brian Landers"

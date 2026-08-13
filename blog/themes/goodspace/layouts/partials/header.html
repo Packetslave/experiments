@@ -1,0 +1,16 @@
+<div class="header-wrapper">
+  <div class="logo-wrapper">
+    <a href="{{ "" | relURL }}" class="logo-text">{{ site.Title }}</a>
+  </div>
+  <div class="navigation-wrapper">
+    <ul class="sf-menu">
+      {{ $current := . }}
+      {{ range site.Menus.main }}
+      <li{{ if or ($current.IsMenuCurrent "main" .) ($current.HasMenuCurrent "main" .) }} class="current-menu-item"{{ end }}>
+        <a href="{{ .URL }}">{{ .Name }}</a>
+      </li>
+      {{ end }}
+    </ul>
+  </div>
+  <div class="clear"></div>
+</div>

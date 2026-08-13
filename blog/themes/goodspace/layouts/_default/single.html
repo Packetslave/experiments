@@ -1,0 +1,20 @@
+{{ define "main" }}
+{{ partial "page-title.html" (dict "title" .Title "caption" .Params.caption) }}
+
+<div class="gdl-page-item">
+  <article class="blog-single">
+    {{ with .Params.image }}
+    <div class="blog-thumbnail-image"><img src="{{ . | relURL }}" alt="{{ $.Title }}"></div>
+    {{ end }}
+    {{ partial "post-info.html" . }}
+    <div class="single-context">
+      <div class="single-content">
+        {{ .Content }}
+      </div>
+    </div>
+    <div class="clear"></div>
+  </article>
+</div>
+
+{{ partial "sidebar.html" . }}
+{{ end }}

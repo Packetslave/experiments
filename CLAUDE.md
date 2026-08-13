@@ -94,17 +94,19 @@ docs/
 
 ## blog/ — Hugo blog
 
-Published at **https://packetslave.github.io/experiments/blog/**. No external theme — layouts live in `blog/layouts/` and share the Tokyo Night palette with `docs/`.
+Published at **https://packetslave.github.io/experiments/blog/**. Uses the `goodspace` theme in `blog/themes/goodspace/` — a local port of the GoodLayers GoodSpace WordPress theme (blog-with-right-sidebar and single-post templates), built for this site under a purchased ThemeForest license. See the theme's `README.md` for provenance and supported params. Unlike `docs/` (Tokyo Night), the blog intentionally uses the light GoodSpace design.
 
 ### Structure
 
 ```
 blog/
-  hugo.toml               # site config (baseURL, taxonomies, syntax highlighting)
+  hugo.toml               # site config (baseURL, theme, menus, taxonomies)
   archetypes/default.md   # front matter template for new posts
   content/posts/          # one markdown file per post: YYYY-MM-DD-<slug>.md
-  layouts/                # self-contained templates (baseof has embedded CSS)
+  themes/goodspace/       # ported theme: templates + one hand-written CSS file
 ```
+
+Do not add a root `blog/layouts/` directory — files there silently override the theme. Extend the theme in `blog/themes/goodspace/` instead. Optional front matter: `image` (featured image), `caption` (subtitle in the title bar).
 
 ### Posting
 

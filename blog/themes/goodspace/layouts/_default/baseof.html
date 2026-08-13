@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ if not .IsHome }}{{ .Title }} &middot; {{ end }}{{ site.Title }}</title>
+  <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ site.Params.description }}{{ end }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23383838'/></svg>">
+  {{ with .OutputFormats.Get "rss" -}}
+  <link rel="alternate" type="application/rss+xml" title="{{ site.Title }}" href="{{ .Permalink }}">
+  {{- end }}
+  <link rel="stylesheet" href="{{ "css/goodspace.css" | relURL }}">
+</head>
+<body>
+  <div class="body-wrapper">
+    <div class="container">
+      {{ partial "header.html" . }}
+      <div class="content-wrapper">
+        {{ block "main" . }}{{ end }}
+        <div class="clear"></div>
+      </div>
+    </div>
+    <div class="copyright-wrapper">
+      <div class="copyright-inner">
+        &copy; {{ now.Year }} {{ site.Title }} &middot; <a href="{{ "index.xml" | relURL }}">RSS</a> &middot; Powered by Hugo
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,19 +1,37 @@
 baseURL = "https://packetslave.github.io/experiments/blog/"
 languageCode = "en-us"
 title = "Notes"
+theme = "goodspace"
+capitalizeListTitles = false
 
 [pagination]
-  pagerSize = 25
+  pagerSize = 10
 
 [taxonomies]
   tag = "tags"
 
 [params]
   description = "Short notes and longer thoughts, posted from wherever I happen to be."
+  caption = "Short notes and longer thoughts."
+  author = "Brian Landers"
+
+[menus]
+  [[menus.main]]
+    name = "Home"
+    pageRef = "/"
+    weight = 10
+  [[menus.main]]
+    name = "Tags"
+    pageRef = "/tags"
+    weight = 20
+  [[menus.main]]
+    name = "Tools"
+    url = "https://packetslave.github.io/experiments/"
+    weight = 30
 
 [markup]
   [markup.highlight]
-    style = "tokyonight-night"
+    style = "github"
     noClasses = true
   [markup.goldmark.renderer]
     unsafe = true

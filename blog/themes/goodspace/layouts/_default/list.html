@@ -1,0 +1,22 @@
+{{ define "main" }}
+{{ partial "page-title.html" (dict "title" .Title "caption" .Params.caption) }}
+
+<div class="gdl-page-item">
+  {{ $paginator := .Paginate .Pages.ByDate.Reverse }}
+  {{ range $paginator.Pages }}
+    {{ partial "blog-item.html" . }}
+  {{ end }}
+
+  {{ if gt $paginator.TotalPages 1 }}
+  <div class="pagination">
+    {{ if $paginator.HasPrev }}<a href="{{ $paginator.Prev.URL }}">&laquo;</a>{{ end }}
+    {{ range $paginator.Pagers }}
+      {{ if eq . $paginator }}<span class="current">{{ .PageNumber }}</span>{{ else }}<a href="{{ .URL }}">{{ .PageNumber }}</a>{{ end }}
+    {{ end }}
+    {{ if $paginator.HasNext }}<a href="{{ $paginator.Next.URL }}">&raquo;</a>{{ end }}
+  </div>
+  {{ end }}
+</div>
+
+{{ partial "sidebar.html" . }}
+{{ end }}

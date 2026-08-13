@@ -1,0 +1,14 @@
+{{ define "main" }}
+{{ partial "page-title.html" (dict "title" .Title "caption" "All tags on this site.") }}
+
+<div class="gdl-page-item">
+  <div class="tagcloud tagcloud-page">
+    {{ range .Data.Terms.Alphabetical }}
+    <a href="{{ .Page.RelPermalink }}">{{ .Page.LinkTitle }} ({{ .Count }})</a>
+    {{ end }}
+    <div class="clear"></div>
+  </div>
+</div>
+
+{{ partial "sidebar.html" . }}
+{{ end }}

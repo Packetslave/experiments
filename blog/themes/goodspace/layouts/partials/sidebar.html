@@ -1,0 +1,39 @@
+<div class="gdl-right-sidebar">
+  <div class="right-sidebar-wrapper">
+
+    {{ with site.Params.description }}
+    <div class="custom-sidebar">
+      <div class="sidebar-title-wrapper"><h3 class="custom-sidebar-title">About</h3><div class="sidebar-title-line"></div></div>
+      <div class="textwidget">{{ . }}</div>
+    </div>
+    {{ end }}
+
+    {{ $posts := where site.RegularPages "Section" "posts" }}
+    {{ with first 5 $posts }}
+    <div class="custom-sidebar">
+      <div class="sidebar-title-wrapper"><h3 class="custom-sidebar-title">Recent Posts</h3><div class="sidebar-title-line"></div></div>
+      <ul>
+        {{ range . }}
+        <li>
+          <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+          <div class="recent-post-widget-date">{{ .Date.Format "02 Jan 2006" }}</div>
+        </li>
+        {{ end }}
+      </ul>
+    </div>
+    {{ end }}
+
+    {{ with site.Taxonomies.tags }}
+    <div class="custom-sidebar">
+      <div class="sidebar-title-wrapper"><h3 class="custom-sidebar-title">Tags</h3><div class="sidebar-title-line"></div></div>
+      <div class="tagcloud">
+        {{ range .Alphabetical }}
+        <a href="{{ .Page.RelPermalink }}">{{ .Page.LinkTitle }} ({{ .Count }})</a>
+        {{ end }}
+        <div class="clear"></div>
+      </div>
+    </div>
+    {{ end }}
+
+  </div>
+</div>
