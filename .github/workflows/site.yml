@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  deploy-pages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,3 +44,46 @@ jobs:
           publish_branch: gh-pages
           publish_dir: site
           commit_message: "Deploy site: ${{ github.event.head_commit.message || 'manual run' }}"
+
+  # Deploys the blog to the personal server over Tailscale + rsync with a
+  # forced-command (rrsync) deploy key. Disabled until the repository
+  # variable SERVER_DEPLOY is set to 'true'; full setup, including the
+  # server side and the tailnet ACLs, is documented in blog/DEPLOY.md.
+  deploy-server:
+    runs-on: ubuntu-latest
+    if: vars.SERVER_DEPLOY == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.148.2"
+          extended: true
+
+      # The server gets its own build so links point at the real domain
+      # (BLOG_BASE_URL) instead of the GitHub Pages URL.
+      - name: Build with production base URL
+        run: hugo --minify --source blog --baseURL "${{ vars.BLOG_BASE_URL }}"
+
+      - name: Join tailnet as ephemeral node
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.BLOG_DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ vars.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      # The target path is "/" because the key's forced rrsync command
+      # jails the session to the blog directory on the server.
+      - name: Rsync to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes" \
+            blog/public/ "${{ vars.DEPLOY_SSH_USER }}@${{ vars.DEPLOY_SSH_HOST }}:/"

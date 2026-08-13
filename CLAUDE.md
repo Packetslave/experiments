@@ -114,7 +114,10 @@ Use the `blog-post` skill (`.claude/skills/blog-post/SKILL.md`) — it covers fr
 
 ### Deployment
 
-The shared `.github/workflows/site.yml` workflow (see the docs/ section above) builds the blog with Hugo (pinned version, `--minify`) and deploys it to `blog/` on `gh-pages` together with the tools. **Never deploy the blog by hand.**
+The shared `.github/workflows/site.yml` workflow (see the docs/ section above) builds the blog with Hugo (pinned version, `--minify`) and deploys it to two targets. **Never deploy the blog by hand.**
+
+- `deploy-pages` job: deploys to `blog/` on `gh-pages` together with the tools.
+- `deploy-server` job: deploys to a personal server over Tailscale + rsync, using a forced-command (rrsync) SSH key and a build with the production `baseURL`. Gated behind the `SERVER_DEPLOY` repository variable; setup and required secrets/variables are documented in `blog/DEPLOY.md`.
 
 ### Local preview
 
