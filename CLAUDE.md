@@ -92,44 +92,34 @@ docs/
 - Every page includes `<link rel="icon" href="data:image/svg+xml,...">` with an inline SVG favicon (accent-blue rounded square) to prevent 404s in request logs. Add this to any new page.
 - Tool pages link back to the index via `<a class="back" href="index.html">← Tools</a>` in the header.
 
+### Adding a new tool
+
+1. Create `docs/<tool-name>.html` following the shared theme and conventions above.
+2. Add a card for it in `docs/index.html` (`.grid > .card`) — every tool must have a card, so the index stays a complete inventory.
+3. Land both on `main` (directly or via a branch and merge). The "Deploy site" workflow publishes them; no manual `gh-pages` step.
+
 ## blog/ — Hugo blog
 
-Published at **https://packetslave.github.io/experiments/blog/**. Uses the `goodspace` theme in `blog/themes/goodspace/` — a local port of the GoodLayers GoodSpace WordPress theme (blog-with-right-sidebar and single-post templates), built for this site under a purchased ThemeForest license. See the theme's `README.md` for provenance and supported params. Unlike `docs/` (Tokyo Night), the blog intentionally uses the light GoodSpace design.
-
-### Structure
+Published at **https://packetslave.github.io/experiments/blog/**. Uses the `goodspace` theme in `blog/themes/goodspace/` — a local Hugo port of the GoodSpace WordPress theme (purchased license). The theme's `README.md` documents provenance, site params, and front matter. Intentionally a light design, unlike the Tokyo Night `docs/` tools.
 
 ```
 blog/
   hugo.toml               # site config (baseURL, theme, menus, taxonomies)
   archetypes/default.md   # front matter template for new posts
   content/posts/          # one markdown file per post: YYYY-MM-DD-<slug>.md
+  static/images/posts/    # hero images (B&W, 1280x480, CC0/public domain)
   themes/goodspace/       # ported theme: templates + one hand-written CSS file
 ```
 
-Do not add a root `blog/layouts/` directory — files there silently override the theme. Extend the theme in `blog/themes/goodspace/` instead. Optional front matter: `image` (B&W hero, 1280x480, stored in `blog/static/images/posts/`), `imageCredit` (attribution shown under the hero), `caption` (subtitle in the title bar). Hero images must be CC0/public-domain or otherwise licensed for use; record the source in `imageCredit`.
+**Posting: use the `blog-post` skill.** It owns all posting guidelines — writing style, front matter, hero image sourcing/licensing/processing, and the publish flow (commit to `main`; CI deploys).
 
-### Posting
+**Deployment:** `.github/workflows/site.yml` deploys on every push to `main` — GitHub Pages always, plus a personal server over Tailscale + rsync when the `SERVER_DEPLOY` repository variable is enabled (setup in `blog/DEPLOY.md`). **Never deploy by hand.**
 
-Use the `blog-post` skill (`.claude/skills/blog-post/SKILL.md`) — it covers front matter, file naming, and publishing. Short version: add a markdown file to `blog/content/posts/` on `main`; the front matter needs `title`, `date` (RFC 3339 UTC), `slug`, and optional `tags`. Posts with `draft: true` are excluded from the build.
+**Theme changes:** edit `blog/themes/goodspace/`. Do not add a root `blog/layouts/` directory — files there silently override the theme.
 
-**Writing style:** blog prose follows ASD-STE100 Simplified Technical English and the GOV.UK style guides. The skill has the distilled rules; consult the source guides for anything it doesn't cover.
-
-### Deployment
-
-The shared `.github/workflows/site.yml` workflow (see the docs/ section above) builds the blog with Hugo (pinned version, `--minify`) and deploys it to two targets. **Never deploy the blog by hand.**
-
-- `deploy-pages` job: deploys to `blog/` on `gh-pages` together with the tools.
-- `deploy-server` job: deploys to a personal server over Tailscale + rsync, using a forced-command (rrsync) SSH key and a build with the production `baseURL`. Gated behind the `SERVER_DEPLOY` repository variable; setup and required secrets/variables are documented in `blog/DEPLOY.md`.
-
-### Local preview
+Local preview:
 
 ```bash
 cd blog && hugo server    # http://localhost:1313/experiments/blog/
 hugo --minify             # production build into blog/public/ (gitignored)
 ```
-
-### Adding a new tool
-
-1. Create `docs/<tool-name>.html` following the shared theme and conventions above.
-2. Add a card for it in `docs/index.html` (`.grid > .card`) — every tool must have a card, so the index stays a complete inventory.
-3. Land both on `main` (directly or via a branch and merge). The "Deploy site" workflow publishes them; no manual `gh-pages` step.

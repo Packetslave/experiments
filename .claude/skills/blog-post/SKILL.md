@@ -1,11 +1,22 @@
 ---
 name: blog-post
-description: Create and publish a new blog post. Use when the user wants to post something to the blog, publish a note or thought, or says things like "new post", "blog this", or "post about X". Turns a rough idea into a markdown post and publishes it by committing to main, which triggers the deploy workflow.
+description: Create and publish a new blog post. Use when the user wants to post something to the blog, publish a note or thought, or says things like "new post", "blog this", or "post about X". Owns all posting guidelines - writing style, front matter, hero images, and the publish flow (commit to main; CI deploys).
 ---
 
 # Publish a blog post
 
-## Writing style
+The pipeline: a markdown file lands on `main` → the "Deploy site" workflow
+builds the Hugo site and deploys it to GitHub Pages (and to the personal
+server when that deploy is enabled — see `blog/DEPLOY.md`). Never touch the
+`gh-pages` branch and never build or deploy by hand.
+
+Live site: https://packetslave.github.io/experiments/blog/
+
+## 1. Write the post
+
+Turn the user's idea into a markdown post. Keep their voice and don't make
+it formal — short posts are fine; this is a notes blog — but apply the
+writing style rules below.
 
 Blog content follows **ASD-STE100 Simplified Technical English** and the
 **GOV.UK style guides** ([style guide](https://www.gov.uk/guidance/style-guide)
@@ -27,50 +38,72 @@ From GOV.UK:
 - Write numbers as digits (`5`, not `five`), except at the start of a sentence.
 - Make link text describe the destination; never "click here".
 
-Posts live in `blog/content/posts/` and are published automatically: any push
-to `main` that touches `blog/**` triggers `.github/workflows/site.yml`, which
-builds the Hugo site and deploys it to `gh-pages/blog/`. The live site is
-https://packetslave.github.io/experiments/blog/
+The list page shows the first ~70 words as the excerpt, so front-load the
+key point — the first sentences must stand alone.
 
-## Steps
+## 2. Name the file
 
-1. **Write the post.** Turn the user's idea into a markdown post. Keep their
-   voice and don't make it formal — short posts are fine; this is a notes
-   blog — but apply the writing style rules below to the prose.
+`blog/content/posts/YYYY-MM-DD-<slug>.md` — today's date (UTC), slug is a
+short kebab-case version of the title.
 
-2. **Name the file** `blog/content/posts/YYYY-MM-DD-<slug>.md` where the slug
-   is a short kebab-case version of the title (today's date, UTC).
+## 3. Front matter
 
-3. **Front matter** (YAML):
+```yaml
+---
+title: "Human readable title"          # sentence case
+date: 2026-08-12T14:30:00Z             # current UTC time, RFC 3339
+slug: "human-readable-title"           # clean slug; becomes the URL path
+tags: ["one", "two"]                   # optional, lowercase; [] if none fit
+image: "images/posts/<slug>.jpg"       # optional hero image (see below)
+imageCredit: "Photo: <who>, <license>" # required whenever image is set
+caption: ""                            # optional subtitle in the title bar
+draft: false                           # true = excluded from the built site
+---
+```
 
-   ```yaml
-   ---
-   title: "Human Readable Title"
-   date: 2026-08-12T14:30:00Z   # current UTC time, RFC 3339
-   slug: "human-readable-title" # clean slug; becomes the URL path
-   tags: ["one", "two"]         # optional, lowercase; omit or [] if none fit
-   draft: false                 # true = excluded from the built site
-   ---
-   ```
+## 4. Hero image (optional, but preferred)
 
-4. **Publish to `main`.** Do not build the site locally and do not touch
-   `gh-pages` — CI handles both. How to get the file onto `main` depends on
-   the session:
-   - **Local session with push access to `main`:** commit the file on `main`
-     with message `Post: <title>` and push.
-   - **Remote/mobile session (working on a feature branch):** commit the
-     post file directly to `main` with the `mcp__github__create_or_update_file`
-     tool (owner `Packetslave`, repo `experiments`, branch `main`). This is
-     the intended publish path for posts — a new post is content, not code,
-     and does not need a PR. Anything beyond adding/editing a post file
-     (templates, config, workflow) is a code change: use the normal
-     branch-and-PR flow instead.
+The GoodSpace theme shows a black-and-white hero above each post.
 
-5. **Confirm.** Tell the user the post URL:
-   `https://packetslave.github.io/experiments/blog/posts/<slug>/`
-   and note that the deploy takes a minute or two. If asked to verify, check
-   the "Deploy site" run via the GitHub Actions MCP tools rather than polling
-   the URL.
+- **Format**: grayscale JPEG, 1280x480 (8:3), quality ~82, saved to
+  `blog/static/images/posts/<slug>.jpg`.
+- **License**: CC0, public domain, or "no known copyright restrictions"
+  only — verify before use, and record the source and license in
+  `imageCredit`. Never use the GoodSpace demo photos (separately-licensed
+  stock) or images with unknown provenance.
+- **Sources**: Wikimedia Commons or Openverse when the network allows.
+  In sandboxes where image CDNs are blocked but PyPI is reachable, the
+  scikit-image sample dataset is a verified fallback: download the wheel
+  (`pip download scikit-image --no-deps`), unzip `skimage/data/`, and check
+  each image's license in the docstrings in `skimage/data/_fetchers.py`.
+- **Processing** (Pillow): convert to grayscale (`.convert('L')`),
+  `ImageOps.autocontrast(im, cutoff=1)`, crop to 8:3 around the subject,
+  resize to 1280x480 with LANCZOS, save RGB JPEG at quality 82.
+- Committing a binary image needs a git checkout. If the session can only
+  use the GitHub file API, publish the post without an image and add it in
+  a later session — a post is publishable without one.
+
+## 5. Publish to `main`
+
+How to get the file onto `main` depends on the session:
+
+- **Session with a git checkout and push access**: commit on `main` with
+  message `Post: <title>` and push.
+- **Remote/mobile session without a checkout**: commit the post file
+  directly to `main` with the `mcp__github__create_or_update_file` tool
+  (owner `Packetslave`, repo `experiments`, branch `main`). This is the
+  intended publish path for posts — a new post is content, not code, and
+  does not need a PR. Anything beyond adding/editing a post file
+  (templates, theme, config, workflow) is a code change: use the normal
+  branch-and-PR flow instead.
+
+## 6. Confirm
+
+Tell the user the post URL:
+`https://packetslave.github.io/experiments/blog/posts/<slug>/`
+and note that the deploy takes a minute or two. If asked to verify, check
+the "Deploy site" run via the GitHub Actions MCP tools rather than polling
+the URL.
 
 ## Editing or removing a post
 
