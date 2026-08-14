@@ -6,7 +6,15 @@
     "license": "CC0",
     "source": "scikit-image sample data (Pikolo Espresso Bar)",
     "openverse_id": null,
-    "keywords": ["coffee", "cup", "cafe", "espresso", "morning", "writing", "blogging"],
+    "keywords": [
+      "coffee",
+      "cup",
+      "cafe",
+      "espresso",
+      "morning",
+      "writing",
+      "blogging"
+    ],
     "added": "2026-08-14"
   },
   {
@@ -16,7 +24,14 @@
     "license": "no known copyright restrictions",
     "source": "https://www.brooklynmuseum.org/opencollection/archives/image/51611",
     "openverse_id": null,
-    "keywords": ["coins", "ancient", "museum", "collection", "duplicates", "history"],
+    "keywords": [
+      "coins",
+      "ancient",
+      "museum",
+      "collection",
+      "duplicates",
+      "history"
+    ],
     "added": "2026-08-14"
   },
   {
@@ -26,7 +41,32 @@
     "license": "public domain",
     "source": "https://www.flickr.com/photos/spacexphotos/16511594820/",
     "openverse_id": null,
-    "keywords": ["rocket", "launch", "space", "technology", "hardware", "tower"],
+    "keywords": [
+      "rocket",
+      "launch",
+      "space",
+      "technology",
+      "hardware",
+      "tower"
+    ],
+    "added": "2026-08-14"
+  },
+  {
+    "file": "images/library/vintage-typewriter-keys-118495bc.jpg",
+    "title": "Vintage typewriter keys",
+    "creator": "Markus Spiske",
+    "license": "CC0",
+    "source": "https://www.rawpixel.com/image/432980/free-photo-image-story-writer-typewriter",
+    "openverse_id": "118495bc-0651-43d9-953d-f5ad675ff087",
+    "keywords": [
+      "journalist",
+      "keys",
+      "old machines",
+      "old typewriter",
+      "story",
+      "typewriter",
+      "writer"
+    ],
     "added": "2026-08-14"
   }
 ]
