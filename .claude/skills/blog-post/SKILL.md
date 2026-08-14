@@ -1,6 +1,6 @@
 ---
 name: blog-post
-description: Create and publish a new blog post or link post. Use when the user wants to post something to the blog, publish a note, thought, or interesting link, or says things like "new post", "blog this", "post about X", or "share this link". Owns all posting guidelines - writing style, front matter, hero images, link posts, and the publish flow (commit to main; CI deploys).
+description: Create and publish a new blog post, link post, or short thought. Use when the user wants to post something to the blog - a full post, an interesting link, or a tweet-length thought - or says things like "new post", "blog this", "post about X", "share this link", or "post a thought". Owns all posting guidelines - writing style, front matter, hero images, link and thought posts, and the publish flow (commit to main; CI deploys).
 ---
 
 # Publish a blog post
@@ -151,6 +151,31 @@ draft: false
 ---
 
 One or two sentences of commentary, if any.
+```
+
+## Thought posts
+
+Tweet-length thoughts. They appear interleaved in the home page feed as a
+quiet italic card, and in the main RSS feed. No dedicated section page —
+each thought has only a minimal permalink (used by the date stamp and RSS).
+
+- **File**: `blog/content/thoughts/YYYY-MM-DD-<slug>.md` — slug is 2-4
+  words summarizing the thought.
+- **Front matter**: just `date` (RFC 3339 UTC) and `draft`. No title, no
+  tags, no link, no hero image.
+- **Body**: the thought itself — a sentence to a short paragraph, in the
+  user's voice. The style rules apply, but keep it conversational; this
+  is the tweet tier.
+- **Publish**: same flow as a post (step 5); confirm with the blog home
+  URL. Skip the hero image step.
+
+```yaml
+---
+date: 2026-08-14T19:29:00Z
+draft: false
+---
+
+The thought goes here. One to three sentences is the sweet spot.
 ```
 
 ## Editing or removing a post

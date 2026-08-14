@@ -2,11 +2,13 @@
 {{ partial "page-title.html" (dict "title" (site.Params.blogTitle | default "Blog") "caption" site.Params.caption) }}
 
 <div class="gdl-page-item">
-  {{ $feed := where site.RegularPages "Section" "in" (slice "posts" "links") }}
+  {{ $feed := where site.RegularPages "Section" "in" (slice "posts" "links" "thoughts") }}
   {{ $paginator := .Paginate $feed }}
   {{ range $paginator.Pages }}
     {{ if eq .Section "links" }}
       {{ partial "link-item.html" . }}
+    {{ else if eq .Section "thoughts" }}
+      {{ partial "thought-item.html" . }}
     {{ else }}
       {{ partial "blog-item.html" . }}
     {{ end }}

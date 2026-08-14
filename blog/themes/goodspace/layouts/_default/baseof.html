@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ if not .IsHome }}{{ .Title }} &middot; {{ end }}{{ site.Title }}</title>
+  <title>{{ if and (not .IsHome) .Title }}{{ .Title }} &middot; {{ end }}{{ site.Title }}</title>
   <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ site.Params.description }}{{ end }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23383838'/></svg>">
   {{ with .OutputFormats.Get "rss" -}}

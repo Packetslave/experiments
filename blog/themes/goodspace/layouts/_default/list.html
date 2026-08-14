@@ -2,7 +2,7 @@
 {{ partial "page-title.html" (dict "title" .Title "caption" .Params.caption) }}
 
 <div class="gdl-page-item">
-  {{ $paginator := .Paginate (where .Pages.ByDate.Reverse "Section" "ne" "links") }}
+  {{ $paginator := .Paginate (where .Pages.ByDate.Reverse "Section" "not in" (slice "links" "thoughts")) }}
   {{ range $paginator.Pages }}
     {{ partial "blog-item.html" . }}
   {{ end }}
