@@ -29,6 +29,22 @@
     </div>
     {{ end }}
 
+    {{ $links := where site.RegularPages "Section" "links" }}
+    {{ with first 5 $links }}
+    <div class="custom-sidebar">
+      <div class="sidebar-title-wrapper"><h3 class="custom-sidebar-title">Latest Links</h3><div class="sidebar-title-line"></div></div>
+      <ul class="sidebar-links">
+        {{ range . }}
+        <li>
+          <a href="{{ .Params.link }}" rel="noopener">{{ .Title | default .Params.link }}</a>
+          <div class="recent-post-widget-date">{{ .Date.Format "02 Jan 2006" }}</div>
+        </li>
+        {{ end }}
+      </ul>
+      <div class="sidebar-all-links"><a href="{{ "links/" | relURL }}">All links &rarr;</a></div>
+    </div>
+    {{ end }}
+
     {{ with site.Taxonomies.tags }}
     <div class="custom-sidebar">
       <div class="sidebar-title-wrapper"><h3 class="custom-sidebar-title">Tags</h3><div class="sidebar-title-line"></div></div>

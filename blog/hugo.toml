@@ -21,6 +21,10 @@ capitalizeListTitles = false
     pageRef = "/"
     weight = 10
   [[menus.main]]
+    name = "Links"
+    pageRef = "/links"
+    weight = 15
+  [[menus.main]]
     name = "Tags"
     pageRef = "/tags"
     weight = 20

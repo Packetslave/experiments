@@ -1,0 +1,10 @@
+{{ define "main" }}
+{{ partial "page-title.html" (dict "title" "Link" "caption" (.Date.Format "02 Jan 2006")) }}
+
+<div class="gdl-page-item">
+  {{ partial "link-item.html" . }}
+  <a class="link-back" href="{{ "links/" | relURL }}">&larr; All links</a>
+</div>
+
+{{ partial "sidebar.html" . }}
+{{ end }}

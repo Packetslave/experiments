@@ -107,6 +107,7 @@ blog/
   hugo.toml               # site config (baseURL, theme, menus, taxonomies)
   archetypes/default.md   # front matter template for new posts
   content/posts/          # one markdown file per post: YYYY-MM-DD-<slug>.md
+  content/links/          # link posts (twitter-style link sharing, /links/)
   static/images/posts/    # hero images (B&W, 1280x480, CC0/public domain)
   static/images/library/  # reusable hero image library + manifest.json
   themes/goodspace/       # ported theme: templates + one hand-written CSS file

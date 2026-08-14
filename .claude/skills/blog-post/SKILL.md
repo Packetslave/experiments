@@ -1,6 +1,6 @@
 ---
 name: blog-post
-description: Create and publish a new blog post. Use when the user wants to post something to the blog, publish a note or thought, or says things like "new post", "blog this", or "post about X". Owns all posting guidelines - writing style, front matter, hero images, and the publish flow (commit to main; CI deploys).
+description: Create and publish a new blog post or link post. Use when the user wants to post something to the blog, publish a note, thought, or interesting link, or says things like "new post", "blog this", "post about X", or "share this link". Owns all posting guidelines - writing style, front matter, hero images, link posts, and the publish flow (commit to main; CI deploys).
 ---
 
 # Publish a blog post
@@ -124,6 +124,33 @@ Tell the user the post URL:
 and note that the deploy takes a minute or two. If asked to verify, check
 the "Deploy site" run via the GitHub Actions MCP tools rather than polling
 the URL.
+
+## Link posts
+
+For sharing a URL — somewhere between a tweet and a link blog. Links get a
+distinctive card style, live at `/links/` (plus the "Latest Links" sidebar
+widget), and never appear in the recent-posts lists or on the home page.
+
+- **File**: `blog/content/links/YYYY-MM-DD-<slug>.md` — slug from the
+  title, or from the site's domain name if there is no title.
+- **Front matter**: `link` (the URL, required), `title` (optional — it
+  becomes the link text; the URL itself is shown when absent), `date`
+  (RFC 3339 UTC), `draft`. No tags, no hero image, no `slug` needed.
+- **Body**: optional commentary, a sentence or two in the user's voice.
+  Empty is fine — the link can stand alone.
+- **Publish**: same flow as a post (step 5); confirm with the
+  `/links/` page URL. Skip the hero image step entirely.
+
+```yaml
+---
+title: "Openverse"                # optional
+date: 2026-08-14T19:23:00Z
+link: "https://openverse.org/"
+draft: false
+---
+
+One or two sentences of commentary, if any.
+```
 
 ## Editing or removing a post
 

@@ -1,10 +1,10 @@
 {{ define "main" }}
-{{ partial "page-title.html" (dict "title" .Title "caption" .Params.caption) }}
+{{ partial "page-title.html" (dict "title" "Links" "caption" (.Params.caption | default "Interesting things from around the web.")) }}
 
 <div class="gdl-page-item">
-  {{ $paginator := .Paginate (where .Pages.ByDate.Reverse "Section" "ne" "links") }}
+  {{ $paginator := .Paginate .Pages.ByDate.Reverse 20 }}
   {{ range $paginator.Pages }}
-    {{ partial "blog-item.html" . }}
+    {{ partial "link-item.html" . }}
   {{ end }}
 
   {{ if gt $paginator.TotalPages 1 }}
