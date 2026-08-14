@@ -29,6 +29,18 @@
     </div>
     {{ end }}
 
+    {{ with site.Taxonomies.tags }}
+    <div class="custom-sidebar">
+      <div class="sidebar-title-wrapper"><h3 class="custom-sidebar-title">Tags</h3><div class="sidebar-title-line"></div></div>
+      <div class="tagcloud">
+        {{ range .Alphabetical }}
+        <a href="{{ .Page.RelPermalink }}">{{ .Page.LinkTitle }} ({{ .Count }})</a>
+        {{ end }}
+        <div class="clear"></div>
+      </div>
+    </div>
+    {{ end }}
+
     {{ $links := where site.RegularPages "Section" "links" }}
     {{ with first 5 $links }}
     <div class="custom-sidebar">
@@ -42,18 +54,6 @@
         {{ end }}
       </ul>
       <div class="sidebar-all-links"><a href="{{ "links/" | relURL }}">All links &rarr;</a></div>
-    </div>
-    {{ end }}
-
-    {{ with site.Taxonomies.tags }}
-    <div class="custom-sidebar">
-      <div class="sidebar-title-wrapper"><h3 class="custom-sidebar-title">Tags</h3><div class="sidebar-title-line"></div></div>
-      <div class="tagcloud">
-        {{ range .Alphabetical }}
-        <a href="{{ .Page.RelPermalink }}">{{ .Page.LinkTitle }} ({{ .Count }})</a>
-        {{ end }}
-        <div class="clear"></div>
-      </div>
     </div>
     {{ end }}
 

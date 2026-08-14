@@ -1,18 +1,10 @@
+{{ with .GetTerms "tags" }}
 <div class="blog-thumbnail-info">
-  <div class="blog-info-inner-wrapper">
-    <span class="blog-info-header">Date:</span>
-    <span class="blog-info-content"><time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "02 Jan 2006" }}</time></span>
-  </div>
-  <div class="blog-info-inner-wrapper">
-    <span class="blog-info-header">By:</span>
-    <span class="blog-info-content">{{ site.Params.author | default site.Title }}</span>
-  </div>
-  {{ with .GetTerms "tags" }}
-  <div class="blog-info-inner-wrapper">
-    <span class="blog-info-header">Tags:</span>
-    <span class="blog-info-content">
-      {{ range $i, $t := . }}{{ if $i }}, {{ end }}<a href="{{ $t.RelPermalink }}">{{ $t.LinkTitle }}</a>{{ end }}
-    </span>
-  </div>
-  {{ end }}
+  <span class="blog-info-header">Tags:</span>
+  <ul class="blog-info-tags">
+    {{ range . }}
+    <li><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
+    {{ end }}
+  </ul>
 </div>
+{{ end }}

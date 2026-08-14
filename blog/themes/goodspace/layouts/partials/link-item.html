@@ -3,9 +3,11 @@
   <div class="link-title">
     <a href="{{ $url }}" rel="noopener">{{ .Title | default $url }}</a>
   </div>
-  <div class="link-meta">
-    {{ with $url }}<span class="link-domain">{{ (urls.Parse .).Host }}</span>{{ end }}
+  {{ with $url }}
+  <div class="link-meta"><span class="link-domain">{{ (urls.Parse .).Host }}</span></div>
+  {{ end }}
+  {{ with .Content }}<div class="link-commentary">{{ . }}</div>{{ end }}
+  <div class="link-date-row">
     <a class="link-date" href="{{ .RelPermalink }}"><time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "02 Jan 2006" }}</time></a>
   </div>
-  {{ with .Content }}<div class="link-commentary">{{ . }}</div>{{ end }}
 </div>
