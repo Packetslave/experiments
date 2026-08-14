@@ -322,8 +322,9 @@ h3.custom-sidebar-title {
   border: 1px solid #ececec;
   border-left: 3px solid #383838;
   padding: 13px 16px;
-  margin-bottom: 14px;
+  margin-bottom: 26px;
 }
+.link-stream .link-item { margin-bottom: 14px; }
 .link-item .link-title {
   font-size: 15px;
   font-weight: bold;

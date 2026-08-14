@@ -2,10 +2,14 @@
 {{ partial "page-title.html" (dict "title" (site.Params.blogTitle | default "Blog") "caption" site.Params.caption) }}
 
 <div class="gdl-page-item">
-  {{ $posts := where site.RegularPages "Section" "posts" }}
-  {{ $paginator := .Paginate $posts }}
+  {{ $feed := where site.RegularPages "Section" "in" (slice "posts" "links") }}
+  {{ $paginator := .Paginate $feed }}
   {{ range $paginator.Pages }}
-    {{ partial "blog-item.html" . }}
+    {{ if eq .Section "links" }}
+      {{ partial "link-item.html" . }}
+    {{ else }}
+      {{ partial "blog-item.html" . }}
+    {{ end }}
   {{ end }}
 
   {{ if gt $paginator.TotalPages 1 }}

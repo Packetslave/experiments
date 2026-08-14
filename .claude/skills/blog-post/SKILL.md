@@ -128,8 +128,9 @@ the URL.
 ## Link posts
 
 For sharing a URL — somewhere between a tweet and a link blog. Links get a
-distinctive card style, live at `/links/` (plus the "Latest Links" sidebar
-widget), and never appear in the recent-posts lists or on the home page.
+distinctive card style and appear interleaved with full posts in the home
+page feed, at `/links/`, and in the "Latest Links" sidebar widget — but
+never in the Recent Posts widget.
 
 - **File**: `blog/content/links/YYYY-MM-DD-<slug>.md` — slug from the
   title, or from the site's domain name if there is no title.

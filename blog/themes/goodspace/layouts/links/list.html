@@ -3,9 +3,11 @@
 
 <div class="gdl-page-item">
   {{ $paginator := .Paginate .Pages.ByDate.Reverse 20 }}
-  {{ range $paginator.Pages }}
-    {{ partial "link-item.html" . }}
-  {{ end }}
+  <div class="link-stream">
+    {{ range $paginator.Pages }}
+      {{ partial "link-item.html" . }}
+    {{ end }}
+  </div>
 
   {{ if gt $paginator.TotalPages 1 }}
   <div class="pagination">
