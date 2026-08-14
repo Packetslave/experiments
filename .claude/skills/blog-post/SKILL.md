@@ -64,24 +64,44 @@ draft: false                           # true = excluded from the built site
 ## 4. Hero image (optional, but preferred)
 
 The GoodSpace theme shows a black-and-white hero above each post.
+Format: grayscale JPEG, 1280x480 (8:3). License: CC0, public domain, or
+"no known copyright restrictions" only, with source and license recorded
+in `imageCredit`. Never use the GoodSpace demo photos (separately-licensed
+stock) or images with unknown provenance.
 
-- **Format**: grayscale JPEG, 1280x480 (8:3), quality ~82, saved to
-  `blog/static/images/posts/<slug>.jpg`.
-- **License**: CC0, public domain, or "no known copyright restrictions"
-  only — verify before use, and record the source and license in
-  `imageCredit`. Never use the GoodSpace demo photos (separately-licensed
-  stock) or images with unknown provenance.
-- **Sources**: Wikimedia Commons or Openverse when the network allows.
-  In sandboxes where image CDNs are blocked but PyPI is reachable, the
-  scikit-image sample dataset is a verified fallback: download the wheel
-  (`pip download scikit-image --no-deps`), unzip `skimage/data/`, and check
-  each image's license in the docstrings in `skimage/data/_fetchers.py`.
-- **Processing** (Pillow): convert to grayscale (`.convert('L')`),
-  `ImageOps.autocontrast(im, cutoff=1)`, crop to 8:3 around the subject,
-  resize to 1280x480 with LANCZOS, save RGB JPEG at quality 82.
-- Committing a binary image needs a git checkout. If the session can only
-  use the GitHub file API, publish the post without an image and add it in
-  a later session — a post is publishable without one.
+Find one in this order:
+
+1. **Image library first.** Read
+   `blog/static/images/library/manifest.json` and look for an entry whose
+   `keywords` fit the post's subject. If one fits, set front matter
+   `image` to the entry's `file` and build `imageCredit` from its
+   `creator` and `license` (`Photo: <creator>, <license> (via <source>)`).
+   This is a text-only edit — it works from any session, and reusing an
+   image across posts is fine.
+
+2. **Fetch workflow.** If the library has no fit, publish the post first
+   (step 5), then trigger the "Fetch hero image" workflow
+   (`fetch-hero.yml`) with the GitHub Actions MCP tools
+   (`actions_run_trigger`, ref `main`) and inputs:
+   - `query`: 2-4 literal, visual search terms — concrete objects
+     photograph well ("typewriter keys", "patch cables"), abstract
+     concepts ("recovery", "simplicity") do not.
+   - `slug`: the post's slug.
+
+   The workflow searches Openverse hard-filtered to CC0/public-domain,
+   processes the best match (`scripts/fetch_hero.py` is the reference
+   implementation), saves it into the library, patches the post's front
+   matter, and pushes — the site then redeploys itself. Watch the run via
+   the Actions tools; if it finds nothing usable, retry once with
+   different terms, then fall through.
+
+3. **No image.** Publish without one — a post is publishable without an
+   image, and the workflow can attach one later at any time.
+
+**Stocking the library:** run the workflow with `query` set and `slug`
+blank to add an image without touching any post. Last-resort offline
+source for sessions with a git checkout: the scikit-image sample dataset
+via PyPI (licenses documented per image in `skimage/data/_fetchers.py`).
 
 ## 5. Publish to `main`
 

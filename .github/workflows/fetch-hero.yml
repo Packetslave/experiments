@@ -1,0 +1,64 @@
+name: Fetch hero image
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Search terms (literal visual subjects work best)"
+        required: true
+        type: string
+      slug:
+        description: "Post slug to attach the image to (blank = just stock the library)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-hero
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install --quiet pillow requests
+
+      - name: Fetch and process image
+        env:
+          QUERY: ${{ inputs.query }}
+          SLUG: ${{ inputs.slug }}
+        run: python scripts/fetch_hero.py --query "$QUERY" --slug "$SLUG"
+
+      # Pushing to main re-triggers the Deploy site workflow, which
+      # publishes the new image (and patched post) automatically.
+      - name: Commit and push
+        env:
+          QUERY: ${{ inputs.query }}
+          SLUG: ${{ inputs.slug }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blog/static/images/library blog/content/posts
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          if [ -n "$SLUG" ]; then
+            git commit -m "Add hero image for post '$SLUG' (query: $QUERY)"
+          else
+            git commit -m "Stock image library (query: $QUERY)"
+          fi
+          for i in 1 2 3; do
+            git push && break
+            git pull --rebase
+          done

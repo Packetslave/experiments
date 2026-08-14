@@ -108,8 +108,11 @@ blog/
   archetypes/default.md   # front matter template for new posts
   content/posts/          # one markdown file per post: YYYY-MM-DD-<slug>.md
   static/images/posts/    # hero images (B&W, 1280x480, CC0/public domain)
+  static/images/library/  # reusable hero image library + manifest.json
   themes/goodspace/       # ported theme: templates + one hand-written CSS file
 ```
+
+The "Fetch hero image" workflow (`.github/workflows/fetch-hero.yml` + `scripts/fetch_hero.py`) pulls CC0/public-domain images from Openverse into the library and attaches them to posts; the `blog-post` skill documents when and how to trigger it.
 
 **Posting: use the `blog-post` skill.** It owns all posting guidelines — writing style, front matter, hero image sourcing/licensing/processing, and the publish flow (commit to `main`; CI deploys).
 
