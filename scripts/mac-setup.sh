@@ -142,10 +142,21 @@ done
 # 1Password, so don't continue until it's signed in and unlocked.
 step "1Password setup"
 info "Sign in to 1Password and unlock your vault before continuing."
-info "Tip: also enable the browser extension / Safari-Chrome integration"
-info "so the GitHub passkey prompt can reach 1Password."
 open -a "1Password"
 read -r -p "    Press Enter once 1Password is signed in and unlocked... "
+
+# 1Password browser extension for Chrome — this is what surfaces the
+# passkey prompt during the GitHub login later.
+ONEPASSWORD_EXT_ID="aeblfdkhhhdcdjpifhhbdiojplfjncoa"
+if find "$HOME/Library/Application Support/Google/Chrome" -maxdepth 3 -type d \
+        -name "$ONEPASSWORD_EXT_ID" 2>/dev/null | grep -q .; then
+    info "1Password Chrome extension already installed."
+else
+    info "Opening the Chrome Web Store — click 'Add to Chrome' to install"
+    info "the 1Password extension, then make sure it's linked to the app."
+    open -a "Google Chrome" "https://chromewebstore.google.com/detail/${ONEPASSWORD_EXT_ID}"
+    read -r -p "    Press Enter once the extension is installed... "
+fi
 
 # ---------------------------------------------------------------------------
 # 7. SSH key
@@ -183,6 +194,8 @@ if gh auth status >/dev/null 2>&1; then
     info "Already logged in to GitHub."
 else
     info "Logging in — follow the prompts (browser flow is easiest)."
+    info "NOTE: if the login opens Safari, copy the URL into Chrome instead —"
+    info "that's where the 1Password extension with your passkey lives."
     gh auth login --hostname github.com --git-protocol ssh --skip-ssh-key
 fi
 
