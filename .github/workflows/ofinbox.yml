@@ -23,9 +23,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: ofinbox/go.mod
           cache-dependency-path: ofinbox/go.sum
@@ -46,9 +46,9 @@ jobs:
       matrix:
         arch: [arm64, amd64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: ofinbox/go.mod
           cache-dependency-path: ofinbox/go.sum
