@@ -124,7 +124,19 @@ for pkg in ansible gh; do
 done
 
 # ---------------------------------------------------------------------------
-# 5. SSH key
+# 5. GUI apps (casks)
+# ---------------------------------------------------------------------------
+step "Installing casks: 1Password, Chrome, Claude Code"
+for cask in 1password google-chrome claude-code; do
+    if brew list --cask "$cask" >/dev/null 2>&1; then
+        info "$cask already installed."
+    else
+        brew install --cask "$cask"
+    fi
+done
+
+# ---------------------------------------------------------------------------
+# 6. SSH key
 # ---------------------------------------------------------------------------
 step "SSH key"
 mkdir -p "$HOME/.ssh"
@@ -152,7 +164,7 @@ fi
 ssh-add --apple-use-keychain "$SSH_KEY" 2>/dev/null || ssh-add "$SSH_KEY"
 
 # ---------------------------------------------------------------------------
-# 6. GitHub: authenticate and upload the key
+# 7. GitHub: authenticate and upload the key
 # ---------------------------------------------------------------------------
 step "GitHub authentication"
 if gh auth status >/dev/null 2>&1; then
@@ -183,7 +195,7 @@ if ! grep -qs "github.com" "$HOME/.ssh/known_hosts"; then
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Dotfiles
+# 8. Dotfiles
 # ---------------------------------------------------------------------------
 step "Dotfiles ($DOTFILES_REPO -> $DOTFILES_DIR)"
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
@@ -194,11 +206,17 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Ansible bootstrap playbook
+# 9. Ansible bootstrap playbook
 # ---------------------------------------------------------------------------
-step "Running ansible playbook: $PLAYBOOK"
+step "Ansible bootstrap playbook: $PLAYBOOK"
 cd "$DOTFILES_DIR"
 [[ -f "$PLAYBOOK" ]] || die "Playbook '$PLAYBOOK' not found in $DOTFILES_DIR. Set PLAYBOOK=<path> and re-run."
+
+read -r -p "    Run the bootstrap playbook now? [Y/n] " reply
+if [[ "$reply" =~ ^[Nn] ]]; then
+    info "Skipped. Re-run this script when you're ready — everything above is already done."
+    exit 0
+fi
 
 # Install any role/collection requirements first (no-op if already present).
 if [[ -f requirements.yml ]]; then
