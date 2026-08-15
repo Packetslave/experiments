@@ -35,6 +35,7 @@ make test           # unit tests (no OmniFocus needed)
 | Key | Action |
 | --- | --- |
 | `j` / `k` (or arrows) | next / previous item |
+| `g` / `G` (or home/end) | first / last item |
 | `c` | mark complete |
 | `d` | drop |
 | `f` | file to a project (type-to-filter picker) |
@@ -66,6 +67,9 @@ defer and 17:00 for due.
   commands against the `Client`; on success the local copy of the task is
   updated (or removed) without a full reload, so the loop stays fast.
 - Reads happen once at startup (`r` refreshes) — inbox, projects, and tags
-  are each a single osascript round trip returning JSON.
+  are each a single osascript round trip returning JSON. The scripts fetch
+  properties columnar-style (one Apple Event per property for the whole
+  list) rather than per-task; per-task access costs one Apple Event per
+  property per task and takes ~45s on a ~200-item inbox versus ~0.2s.
 - There is no undo; `d` uses OmniFocus's "dropped" status rather than
   deletion, so nothing is destroyed irrecoverably.

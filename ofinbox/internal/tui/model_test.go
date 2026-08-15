@@ -101,6 +101,35 @@ func TestNavigationBounds(t *testing.T) {
 	}
 }
 
+func TestMultiRuneKeysReplayIndividually(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	// Coalesced input (fast key repeat / paste) arrives as one multi-rune
+	// KeyMsg; each rune should act as its own keypress in browse mode.
+	m = drive(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("jjj")})
+	if m.index != 3 {
+		t.Fatalf("after coalesced jjj: index = %d, want 3", m.index)
+	}
+}
+
+func TestJumpKeys(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	m = drive(t, m, key("G"))
+	if m.index != len(m.tasks)-1 {
+		t.Fatalf("G: index = %d, want %d", m.index, len(m.tasks)-1)
+	}
+	m = drive(t, m, key("g"))
+	if m.index != 0 {
+		t.Fatalf("g: index = %d, want 0", m.index)
+	}
+}
+
+func TestOneline(t *testing.T) {
+	got := oneline("\n\n  https://example.com  \nrest\n")
+	if got != "https://example.com rest" {
+		t.Fatalf("oneline = %q", got)
+	}
+}
+
 func TestFileToProject(t *testing.T) {
 	m := loaded(t, omnifocus.NewDemoClient())
 	initial := len(m.tasks)

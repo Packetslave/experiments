@@ -184,6 +184,22 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
+	// Terminals can coalesce fast keystrokes (key repeat, paste) into one
+	// multi-rune message. In browse mode, replay each rune as its own
+	// keypress; in input/picker modes the text field handles it as a paste.
+	if m.mode == modeBrowse && msg.Type == tea.KeyRunes && len(msg.Runes) > 1 {
+		var model tea.Model = m
+		var cmds []tea.Cmd
+		for _, r := range msg.Runes {
+			var cmd tea.Cmd
+			model, cmd = model.(Model).updateKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
+		return model, tea.Batch(cmds...)
+	}
+
 	switch m.mode {
 	case modeLoading:
 		if msg.String() == "q" {
@@ -248,6 +264,12 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.index--
 		}
 		return m, nil
+	case "g", "home":
+		m.index = 0
+		return m, nil
+	case "G", "end":
+		m.index = max(0, len(m.tasks)-1)
+		return m, nil
 	}
 
 	// Everything below acts on the current task.
@@ -266,14 +288,14 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		id := task.ID
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return m.client.Complete(ctx, id) },
-			actionDoneMsg{status: "✓ completed: " + task.Name, remove: true}))
+			actionDoneMsg{status: "✓ completed: " + displayName(task.Name), remove: true}))
 
 	case "d":
 		m.busy = true
 		id := task.ID
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return m.client.Drop(ctx, id) },
-			actionDoneMsg{status: "⌫ dropped: " + task.Name, remove: true}))
+			actionDoneMsg{status: "⌫ dropped: " + displayName(task.Name), remove: true}))
 
 	case "!":
 		m.busy = true
@@ -285,7 +307,7 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return m.client.SetFlagged(ctx, id, newVal) },
-			actionDoneMsg{status: "⚑ " + verb + ": " + task.Name,
+			actionDoneMsg{status: "⚑ " + verb + ": " + displayName(task.Name),
 				apply: func(t *omnifocus.Task) { t.Flagged = newVal }}))
 
 	case "f":
@@ -300,7 +322,7 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			items = append(items, pickItem{id: p.ID, label: p.Name, desc: desc})
 		}
-		m.picker = newPicker("File \""+task.Name+"\" to project:", "type to filter projects", items)
+		m.picker = newPicker("File \""+displayName(task.Name)+"\" to project:", "type to filter projects", items)
 		m.mode = modePickProject
 		return m, textinput.Blink
 
@@ -309,7 +331,7 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		for _, g := range m.tags {
 			items = append(items, pickItem{id: g.ID, label: g.Name})
 		}
-		m.picker = newPicker("Add tag to \""+task.Name+"\":", "type to filter tags", items)
+		m.picker = newPicker("Add tag to \""+displayName(task.Name)+"\":", "type to filter tags", items)
 		m.mode = modePickTag
 		return m, textinput.Blink
 
@@ -357,13 +379,13 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 		pickID := it.id
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return m.client.MoveToProject(ctx, id, pickID) },
-			actionDoneMsg{status: "→ filed to " + it.label + ": " + task.Name, remove: true}))
+			actionDoneMsg{status: "→ filed to " + it.label + ": " + displayName(task.Name), remove: true}))
 	default: // Add tag
 		pickID := it.id
 		tagName := it.label
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return m.client.AddTag(ctx, id, pickID) },
-			actionDoneMsg{status: "# tagged " + tagName + ": " + task.Name,
+			actionDoneMsg{status: "# tagged " + tagName + ": " + displayName(task.Name),
 				apply: func(t *omnifocus.Task) {
 					for _, existing := range t.Tags {
 						if existing == tagName {
@@ -417,9 +439,9 @@ func (m Model) applyInput() (tea.Model, tea.Cmd) {
 			label, verb = "defer", "⏥ deferred"
 			call = m.client.SetDeferDate
 		}
-		status := verb + " " + fmtWhen(when) + ": " + task.Name
+		status := verb + " " + fmtWhen(when) + ": " + displayName(task.Name)
 		if when == nil {
-			status = "cleared " + label + " date: " + task.Name
+			status = "cleared " + label + " date: " + displayName(task.Name)
 		}
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return call(ctx, id, when) },
