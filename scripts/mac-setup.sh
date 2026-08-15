@@ -114,8 +114,8 @@ fi
 # ---------------------------------------------------------------------------
 # 4. Ansible + GitHub CLI
 # ---------------------------------------------------------------------------
-step "Installing ansible and gh"
-for pkg in ansible gh; do
+step "Installing ansible, gh, and mas"
+for pkg in ansible gh mas; do
     if brew list --formula "$pkg" >/dev/null 2>&1; then
         info "$pkg already installed."
     else
@@ -145,18 +145,27 @@ info "Sign in to 1Password and unlock your vault before continuing."
 open -a "1Password"
 read -r -p "    Press Enter once 1Password is signed in and unlocked... "
 
-# 1Password browser extension for Chrome — this is what surfaces the
-# passkey prompt during the GitHub login later.
-ONEPASSWORD_EXT_ID="aeblfdkhhhdcdjpifhhbdiojplfjncoa"
-if find "$HOME/Library/Application Support/Google/Chrome" -maxdepth 3 -type d \
-        -name "$ONEPASSWORD_EXT_ID" 2>/dev/null | grep -q .; then
-    info "1Password Chrome extension already installed."
+# 1Password for Safari (Mac App Store app) — this is what surfaces the
+# GitHub passkey prompt during the login later.
+SAFARI_1P_ID=1569813296
+if mas list | grep -q "^${SAFARI_1P_ID} "; then
+    info "1Password for Safari already installed."
 else
-    info "Opening the Chrome Web Store — click 'Add to Chrome' to install"
-    info "the 1Password extension, then make sure it's linked to the app."
-    open -a "Google Chrome" "https://chromewebstore.google.com/detail/${ONEPASSWORD_EXT_ID}"
-    read -r -p "    Press Enter once the extension is installed... "
+    info "Installing 1Password for Safari from the App Store..."
+    until mas install "$SAFARI_1P_ID"; do
+        info "Install failed — this usually means you're not signed in to the App Store."
+        open -a "App Store"
+        read -r -p "    Sign in via the App Store window, then press Enter to retry... "
+    done
 fi
+
+# Enabling the extension is GUI-only — Apple doesn't allow scripting it.
+info "In the Safari window that opens: Settings (cmd-,) -> Extensions ->"
+info "enable '1Password for Safari' and allow it on every website."
+info "Also recommended: System Settings -> General -> AutoFill & Passwords ->"
+info "turn on 1Password, so Safari's passkey sheet can offer it."
+open -a Safari
+read -r -p "    Press Enter once the Safari extension is enabled and unlocked... "
 
 # ---------------------------------------------------------------------------
 # 7. SSH key
@@ -194,8 +203,7 @@ if gh auth status >/dev/null 2>&1; then
     info "Already logged in to GitHub."
 else
     info "Logging in — follow the prompts (browser flow is easiest)."
-    info "NOTE: if the login opens Safari, copy the URL into Chrome instead —"
-    info "that's where the 1Password extension with your passkey lives."
+    info "The login opens Safari, where 1Password can offer your GitHub passkey."
     gh auth login --hostname github.com --git-protocol ssh --skip-ssh-key
 fi
 
@@ -239,17 +247,30 @@ cd "$DOTFILES_DIR"
 
 read -r -p "    Run the bootstrap playbook now? [Y/n] " reply
 if [[ "$reply" =~ ^[Nn] ]]; then
-    info "Skipped. Re-run this script when you're ready — everything above is already done."
-    exit 0
+    info "Skipping the playbook — re-run this script when you're ready."
+else
+    # Install any role/collection requirements first (no-op if already present).
+    if [[ -f requirements.yml ]]; then
+        ansible-galaxy install -r requirements.yml
+    fi
+    # -K prompts for the sudo password for privileged tasks.
+    ansible-playbook -i "localhost," -c local -K "$PLAYBOOK"
 fi
 
-# Install any role/collection requirements first (no-op if already present).
-if [[ -f requirements.yml ]]; then
-    ansible-galaxy install -r requirements.yml
+# ---------------------------------------------------------------------------
+# 11. 1Password extension for Chrome (optional — Safari covers the bootstrap)
+# ---------------------------------------------------------------------------
+step "1Password extension for Chrome"
+ONEPASSWORD_EXT_ID="aeblfdkhhhdcdjpifhhbdiojplfjncoa"
+if find "$HOME/Library/Application Support/Google/Chrome" -maxdepth 3 -type d \
+        -name "$ONEPASSWORD_EXT_ID" 2>/dev/null | grep -q .; then
+    info "1Password Chrome extension already installed."
+else
+    info "Opening the Chrome Web Store — click 'Add to Chrome' to install"
+    info "the 1Password extension, then make sure it's linked to the app."
+    open -a "Google Chrome" "https://chromewebstore.google.com/detail/${ONEPASSWORD_EXT_ID}"
+    read -r -p "    Press Enter once the extension is installed (or to skip)... "
 fi
-
-# -K prompts for the sudo password for privileged tasks.
-ansible-playbook -i "localhost," -c local -K "$PLAYBOOK"
 
 step "Done"
 info "Mac bootstrap complete. Open a new terminal to pick up shell changes."
