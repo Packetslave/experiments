@@ -89,7 +89,13 @@ func (m Model) View() string {
 	task := m.tasks[m.index]
 
 	var card strings.Builder
-	title := titleStyle.Render(task.Name)
+	name := oneline(task.Name)
+	var title string
+	if name == "" {
+		title = dimStyle.Italic(true).Render("(untitled)")
+	} else {
+		title = titleStyle.Render(name)
+	}
 	if task.Flagged {
 		title = flagStyle.Render("⚑ ") + title
 	}
@@ -127,7 +133,7 @@ func (m Model) View() string {
 	b.WriteString("  " + dimStyle.Render(pos) + "\n")
 	b.WriteString(m.statusLine())
 	b.WriteString("\n")
-	b.WriteString("  " + dimStyle.Render("j/k next/prev · c complete · d drop · f file · t tag · ! flag") + "\n")
+	b.WriteString("  " + dimStyle.Render("j/k next/prev · g/G first/last · c complete · d drop · f file · t tag · ! flag") + "\n")
 	b.WriteString("  " + dimStyle.Render("e edit title · s defer · u due · r refresh · q quit") + "\n")
 	return b.String()
 }
@@ -141,6 +147,21 @@ func (m Model) statusLine() string {
 		style = errStyle
 	}
 	return "  " + style.Render(m.status) + "\n"
+}
+
+// oneline collapses all whitespace (including newlines) in a task name so
+// stray line breaks in real data can't distort the card or status line.
+func oneline(s string) string {
+	return strings.Join(strings.Fields(s), " ")
+}
+
+// displayName is oneline with a placeholder for nameless tasks (real inboxes
+// contain them — e.g. a captured link whose URL landed in the note).
+func displayName(s string) string {
+	if t := oneline(s); t != "" {
+		return t
+	}
+	return "(untitled)"
 }
 
 func indent(s string, n int) string {
