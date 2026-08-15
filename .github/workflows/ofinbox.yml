@@ -1,0 +1,67 @@
+name: Build ofinbox
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ofinbox/**"
+      - ".github/workflows/ofinbox.yml"
+  pull_request:
+    paths:
+      - "ofinbox/**"
+      - ".github/workflows/ofinbox.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ofinbox
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ofinbox/go.mod
+          cache-dependency-path: ofinbox/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+  # ofinbox targets macOS (it drives OmniFocus via osascript), so cross-compile
+  # darwin binaries and publish them as artifacts on every merge to main.
+  build:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [arm64, amd64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ofinbox/go.mod
+          cache-dependency-path: ofinbox/go.sum
+
+      - name: Build darwin/${{ matrix.arch }}
+        env:
+          GOOS: darwin
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: "0"
+        run: go build -trimpath -o bin/ofinbox-darwin-${{ matrix.arch }} .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ofinbox-darwin-${{ matrix.arch }}
+          path: ofinbox/bin/ofinbox-darwin-${{ matrix.arch }}
+          if-no-files-found: error

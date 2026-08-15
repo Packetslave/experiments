@@ -63,6 +63,21 @@ grpc/
 
 The client uses `grpc.NewClient` (not the deprecated `grpc.Dial`) with explicit `insecure.NewCredentials()`. New clients should follow the same pattern.
 
+## ofinbox/ module
+
+A Bubble Tea TUI for processing the OmniFocus inbox (see `ofinbox/README.md`). All commands run from `ofinbox/`.
+
+```bash
+make build            # builds bin/ofinbox
+make test             # unit tests — run against the demo backend, no OmniFocus needed
+./bin/ofinbox         # real inbox (macOS only; talks to OmniFocus via osascript/JXA)
+./bin/ofinbox -demo   # built-in sample data, works on any platform
+```
+
+Architecture: `internal/omnifocus` defines the `Client` interface with two implementations — `OsascriptClient` (embedded JXA scripts in `internal/omnifocus/scripts/`, run via `osascript -l JavaScript`) and `DemoClient` (in-memory, used by `-demo` and tests). `internal/tui` holds the Bubble Tea model/view. New OmniFocus operations need: a case in `scripts/task_action.js`, a method on both clients (and the interface), and a key binding in `internal/tui/model.go`.
+
+The JXA scripts can only be exercised on macOS with OmniFocus installed — CI and Linux dev environments build and test everything else via the demo backend.
+
 ## docs/ — web tools (GitHub Pages)
 
 Static single-page browser utilities, published at **https://packetslave.github.io/experiments/**.
