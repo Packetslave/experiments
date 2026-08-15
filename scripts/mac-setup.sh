@@ -136,7 +136,19 @@ for cask in 1password google-chrome claude-code; do
 done
 
 # ---------------------------------------------------------------------------
-# 6. SSH key
+# 6. 1Password sign-in gate
+# ---------------------------------------------------------------------------
+# The GitHub login later in this script needs the passkey stored in
+# 1Password, so don't continue until it's signed in and unlocked.
+step "1Password setup"
+info "Sign in to 1Password and unlock your vault before continuing."
+info "Tip: also enable the browser extension / Safari-Chrome integration"
+info "so the GitHub passkey prompt can reach 1Password."
+open -a "1Password"
+read -r -p "    Press Enter once 1Password is signed in and unlocked... "
+
+# ---------------------------------------------------------------------------
+# 7. SSH key
 # ---------------------------------------------------------------------------
 step "SSH key"
 mkdir -p "$HOME/.ssh"
@@ -164,7 +176,7 @@ fi
 ssh-add --apple-use-keychain "$SSH_KEY" 2>/dev/null || ssh-add "$SSH_KEY"
 
 # ---------------------------------------------------------------------------
-# 7. GitHub: authenticate and upload the key
+# 8. GitHub: authenticate and upload the key
 # ---------------------------------------------------------------------------
 step "GitHub authentication"
 if gh auth status >/dev/null 2>&1; then
@@ -195,7 +207,7 @@ if ! grep -qs "github.com" "$HOME/.ssh/known_hosts"; then
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Dotfiles
+# 9. Dotfiles
 # ---------------------------------------------------------------------------
 step "Dotfiles ($DOTFILES_REPO -> $DOTFILES_DIR)"
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
@@ -206,7 +218,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 9. Ansible bootstrap playbook
+# 10. Ansible bootstrap playbook
 # ---------------------------------------------------------------------------
 step "Ansible bootstrap playbook: $PLAYBOOK"
 cd "$DOTFILES_DIR"
