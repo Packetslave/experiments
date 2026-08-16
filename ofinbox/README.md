@@ -39,6 +39,7 @@ make test           # unit tests (no OmniFocus needed)
 | `c` | mark complete |
 | `d` | drop |
 | `f` | file to a project (type-to-filter picker) |
+| `l` | file a link item to the links project (see below) |
 | `t` | add a tag (type-to-filter picker; repeat for more tags) |
 | `!` | toggle flag |
 | `enter` | open an action group's subtasks in the queue |
@@ -50,6 +51,17 @@ make test           # unit tests (no OmniFocus needed)
 
 Completing, dropping, or filing an item removes it from the session and
 counts toward the "processed" tally in the header.
+
+### Link items
+
+Links dropped into the inbox get special handling. An item counts as a
+link — and shows a `🔗 link` badge — when its title or its note, trimmed,
+is exactly one URL: a URL-only note qualifies with or without a title,
+and a URL-only title qualifies regardless of the note. Prose around the
+URL disqualifies it. `l` files a link in one keystroke: it adds the
+`NoAction` tag and moves the item to the "Links to Review" project
+(preferring the one in the "Personal" folder). Both names are hardcoded
+for now and will become preferences later.
 
 ### Action groups (items with subtasks)
 

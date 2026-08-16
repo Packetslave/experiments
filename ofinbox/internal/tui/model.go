@@ -32,6 +32,13 @@ const (
 	actionTimeout    = 30 * time.Second
 )
 
+// Where the "l" shortcut files link items. Hardcoded for now; preference later.
+const (
+	linksProjectName   = "Links to Review"
+	linksProjectFolder = "Personal"
+	linkTagName        = "NoAction"
+)
+
 type Model struct {
 	client omnifocus.Client
 
@@ -352,6 +359,37 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			func(ctx context.Context) error { return m.client.Drop(ctx, id) },
 			actionDoneMsg{status: "⌫ dropped: " + displayName(task.Name), remove: true}))
 
+	case "l":
+		url, ok := task.LinkURL()
+		if !ok {
+			m.setStatus("not a link (title or note must be just a URL)", true)
+			return m, nil
+		}
+		proj, ok := m.findProject(linksProjectName, linksProjectFolder)
+		if !ok {
+			m.setStatus(fmt.Sprintf("project %q not found", linksProjectName), true)
+			return m, nil
+		}
+		tag, ok := m.findTag(linkTagName)
+		if !ok {
+			m.setStatus(fmt.Sprintf("tag %q not found", linkTagName), true)
+			return m, nil
+		}
+		label := displayName(task.Name)
+		if oneline(task.Name) == "" {
+			label = url
+		}
+		m.busy = true
+		id := task.ID
+		return m, tea.Batch(m.spin.Tick, actionCmd(id,
+			func(ctx context.Context) error {
+				if err := m.client.AddTag(ctx, id, tag.ID); err != nil {
+					return err
+				}
+				return m.client.MoveToProject(ctx, id, proj.ID)
+			},
+			actionDoneMsg{status: "🔗 → " + proj.Name + " +" + tag.Name + ": " + label, remove: true}))
+
 	case "enter":
 		if task.ChildCount == 0 {
 			return m, nil
@@ -584,6 +622,34 @@ func (m *Model) removeFromQueue(id string) {
 			m.tasks[pi].ChildCount--
 		}
 	}
+}
+
+// findProject matches by name, preferring a project in the given folder when
+// the name is ambiguous.
+func (m *Model) findProject(name, folder string) (omnifocus.Project, bool) {
+	var fallback omnifocus.Project
+	found := false
+	for _, p := range m.projects {
+		if p.Name != name {
+			continue
+		}
+		if p.Folder == folder {
+			return p, true
+		}
+		if !found {
+			fallback, found = p, true
+		}
+	}
+	return fallback, found
+}
+
+func (m *Model) findTag(name string) (omnifocus.Tag, bool) {
+	for _, g := range m.tags {
+		if g.Name == name {
+			return g, true
+		}
+	}
+	return omnifocus.Tag{}, false
 }
 
 func (m *Model) current() (omnifocus.Task, bool) {

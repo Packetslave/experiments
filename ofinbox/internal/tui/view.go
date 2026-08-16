@@ -102,6 +102,9 @@ func (m Model) View() string {
 	card.WriteString(title)
 
 	var meta []string
+	if _, ok := task.LinkURL(); ok {
+		meta = append(meta, tagStyle.Render("🔗 link"))
+	}
 	if task.ChildCount > 0 {
 		sub := "subtasks"
 		if task.ChildCount == 1 {
@@ -145,7 +148,7 @@ func (m Model) View() string {
 	b.WriteString("  " + dimStyle.Render(pos) + "\n")
 	b.WriteString(m.statusLine())
 	b.WriteString("\n")
-	b.WriteString("  " + dimStyle.Render("j/k next/prev · g/G first/last · c complete · d drop · f file · t tag · ! flag") + "\n")
+	b.WriteString("  " + dimStyle.Render("j/k next/prev · g/G first/last · c complete · d drop · f file · l file link · t tag · ! flag") + "\n")
 	b.WriteString("  " + dimStyle.Render("e edit title · s defer · u due · enter subtasks · r refresh · q quit") + "\n")
 	return b.String()
 }

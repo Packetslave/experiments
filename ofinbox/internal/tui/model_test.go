@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -300,6 +301,49 @@ func TestParentRemovalSweepsSplicedChildren(t *testing.T) {
 		if task.ParentID != "" {
 			t.Fatalf("orphaned spliced child left in queue: %+v", task)
 		}
+	}
+}
+
+func TestFileLinkShortcut(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initial := len(m.tasks)
+	found := false
+	for i, task := range m.tasks {
+		if _, ok := task.LinkURL(); ok {
+			m.index = i
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("demo data has no link item")
+	}
+
+	m = drive(t, m, key("l"))
+	if len(m.tasks) != initial-1 {
+		t.Fatalf("after filing link: %d tasks, want %d", len(m.tasks), initial-1)
+	}
+	if m.processed != 1 {
+		t.Fatalf("processed = %d, want 1", m.processed)
+	}
+	if m.statusIsErr || !strings.Contains(m.status, "Links to Review") {
+		t.Fatalf("status = %q", m.status)
+	}
+}
+
+func TestFileLinkOnNonLink(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initial := len(m.tasks)
+	if _, ok := m.tasks[0].LinkURL(); ok {
+		t.Fatal("expected first demo task to not be a link")
+	}
+
+	m = drive(t, m, key("l"))
+	if len(m.tasks) != initial {
+		t.Fatal("l on a non-link should not change the queue")
+	}
+	if !m.statusIsErr {
+		t.Fatalf("expected error status, got %q", m.status)
 	}
 }
 

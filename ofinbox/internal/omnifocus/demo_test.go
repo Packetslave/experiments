@@ -85,6 +85,31 @@ func TestDemoClientLifecycle(t *testing.T) {
 	}
 }
 
+func TestLinkURL(t *testing.T) {
+	cases := []struct {
+		name string
+		task Task
+		url  string
+	}{
+		{"untitled with URL note", Task{Note: "https://example.com/a"}, "https://example.com/a"},
+		{"URL-only title", Task{Name: "https://example.com/b"}, "https://example.com/b"},
+		{"title with URL-only note", Task{Name: "Read later", Note: "https://example.com/c"}, "https://example.com/c"},
+		{"URL note with surrounding whitespace", Task{Note: "\n  https://example.com/d \n"}, "https://example.com/d"},
+		{"http scheme", Task{Note: "http://example.com/e"}, "http://example.com/e"},
+		{"plain task", Task{Name: "Buy filter", Note: "16x25x1"}, ""},
+		{"URL amid prose in note", Task{Name: "Read later", Note: "see https://example.com/f for details"}, ""},
+		{"multi-line note starting with URL", Task{Note: "https://example.com/g\nplus notes"}, ""},
+		{"non-http scheme", Task{Note: "ftp://example.com/h"}, ""},
+		{"empty task", Task{}, ""},
+	}
+	for _, c := range cases {
+		url, ok := c.task.LinkURL()
+		if want := c.url != ""; ok != want || url != c.url {
+			t.Errorf("%s: LinkURL() = %q, %v; want %q, %v", c.name, url, ok, c.url, want)
+		}
+	}
+}
+
 func TestDemoClientChildren(t *testing.T) {
 	ctx := context.Background()
 	c := NewDemoClient()

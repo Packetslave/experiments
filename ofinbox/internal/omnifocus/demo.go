@@ -35,6 +35,9 @@ func NewDemoClient() *DemoClient {
 			{ID: "t7b", ParentID: "t7", Name: "Compare lift ticket prices", Tags: []string{"errand"}},
 			{ID: "t7c", ParentID: "t7", Name: "Sort out rental gear"},
 			{ID: "t7c1", ParentID: "t7c", Name: "Find ski boots in garage"},
+			{ID: "t8", Name: "", Note: "https://example.com/great-article"},
+			{ID: "t9", Name: "https://go.dev/blog/loopvar-preview"},
+			{ID: "t10", Name: "Retirement cash flow calculator", Note: "https://example.com/retirement-cash-flow"},
 		},
 		projects: []Project{
 			{ID: "p1", Name: "Home maintenance", Folder: "Personal", Status: "active"},
@@ -43,6 +46,7 @@ func NewDemoClient() *DemoClient {
 			{ID: "p4", Name: "Experiments repo", Folder: "Work", Status: "active"},
 			{ID: "p5", Name: "Reading list", Folder: "", Status: "active"},
 			{ID: "p6", Name: "Kitchen remodel", Folder: "Personal", Status: "on hold"},
+			{ID: "p7", Name: "Links to Review", Folder: "Personal", Status: "active"},
 		},
 		tags: []Tag{
 			{ID: "g1", Name: "errand"},
@@ -50,6 +54,7 @@ func NewDemoClient() *DemoClient {
 			{ID: "g3", Name: "deep work"},
 			{ID: "g4", Name: "waiting"},
 			{ID: "g5", Name: "phone"},
+			{ID: "g6", Name: "NoAction"},
 		},
 	}
 }

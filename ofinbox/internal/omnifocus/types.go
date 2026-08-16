@@ -5,6 +5,7 @@ package omnifocus
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,29 @@ type Task struct {
 	Tags       []string
 	ChildCount int    // direct subtasks; > 0 means this is an action group
 	ParentID   string // containing task's ID for fetched children, "" for top-level inbox items
+}
+
+// LinkURL reports whether the task is a captured link and returns its URL.
+// A task is a link when its name or its note, trimmed, is exactly one URL:
+// a URL-only note counts with or without a title, and a URL-only title
+// counts regardless of the note.
+func (t Task) LinkURL() (string, bool) {
+	if u, ok := onlyURL(t.Name); ok {
+		return u, true
+	}
+	return onlyURL(t.Note)
+}
+
+func onlyURL(s string) (string, bool) {
+	s = strings.TrimSpace(s)
+	lower := strings.ToLower(s)
+	if !strings.HasPrefix(lower, "http://") && !strings.HasPrefix(lower, "https://") {
+		return "", false
+	}
+	if strings.ContainsAny(s, " \t\n\r") {
+		return "", false
+	}
+	return s, true
 }
 
 // Project is a filing destination.
