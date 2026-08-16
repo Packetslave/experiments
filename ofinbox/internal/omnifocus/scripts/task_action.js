@@ -37,16 +37,21 @@ function run(argv) {
       task.dueDate = argv[2] === '' ? null : new Date(argv[2]);
       break;
     case 'move': {
-      const projs = doc.flattenedProjects.whose({ id: argv[2] })();
-      if (projs.length === 0) throw new Error('project not found: ' + argv[2]);
-      const proj = projs[0];
-      try {
-        app.move(task, { to: proj.tasks.end });
-      } catch (e) {
-        // Fallback for inbox items: assign a container and let cleanup file it.
-        task.assignedContainer = proj;
-        try { app.compact(doc); } catch (e2) {}
-      }
+      // The AppleScript bridge can't resolve project insertion locations here
+      // (app.move throws "nil container" for every variant), and the old
+      // assignedContainer+compact fallback silently no-ops for children of
+      // action groups. Omni Automation's moveTasks handles both.
+      const res = app.evaluateJavascript(
+        '(() => {' +
+        '  const t = Task.byIdentifier(' + JSON.stringify(taskID) + ');' +
+        '  const p = Project.byIdentifier(' + JSON.stringify(argv[2]) + ');' +
+        '  if (!t) return "task not found: ' + taskID + '";' +
+        '  if (!p) return "project not found: ' + argv[2] + '";' +
+        '  moveTasks([t], p.ending);' +
+        '  return "ok";' +
+        '})()'
+      );
+      if (res !== 'ok') throw new Error(res);
       break;
     }
     case 'tag': {
