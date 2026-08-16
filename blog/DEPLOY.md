@@ -152,6 +152,9 @@ forced rrsync command maps it to `/var/www/blog`.
     `ssh-keygen -lf /home/blogdeploy/.ssh/authorized_keys` on the server.
   3. A malformed options prefix on the `authorized_keys` line (unbalanced
      quotes) makes sshd skip the line — it must be exactly one line.
+- **`FileNotFoundError: ... '/var/www/blog'` from rrsync** — auth worked;
+  the target directory is missing on the server. Create it (step 1):
+  `sudo mkdir -p /var/www/blog && sudo chown blogdeploy:blogdeploy /var/www/blog`.
 - **rsync succeeds but the site doesn't update** — check that your web
   server actually serves `/var/www/blog` and that `BLOG_BASE_URL` matches
   the public URL.
