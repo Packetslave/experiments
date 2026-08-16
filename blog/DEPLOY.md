@@ -58,6 +58,16 @@ What each part does:
   and nothing else; `-wo` makes it write-only and jails it to that directory.
 - `restrict` — disables port/agent/X11 forwarding and PTY allocation.
 
+**Permissions matter**: sshd's `StrictModes` silently ignores
+`authorized_keys` unless the deploy user owns it with tight modes. After
+creating the file (especially via `sudo`), always:
+
+```bash
+sudo chown -R blogdeploy:blogdeploy /home/blogdeploy/.ssh
+sudo chmod 700 /home/blogdeploy/.ssh
+sudo chmod 600 /home/blogdeploy/.ssh/authorized_keys
+```
+
 Optional extra hardening in `sshd_config`:
 
 ```
@@ -125,6 +135,26 @@ ephemeral node should vanish from the admin console after the run.
 
 The rsync target in the workflow is `:/` — that is not the server root; the
 forced rrsync command maps it to `/var/www/blog`.
+
+## Troubleshooting
+
+- **`Host key verification failed`** — should not happen anymore: the
+  workflow learns the host key over the tailnet at deploy time. If it does,
+  `ssh-keyscan` returned nothing; check that the server is up on the
+  tailnet and sshd is listening.
+- **`Permission denied (publickey)`** — the server refused the deploy key.
+  Run `sudo journalctl -u ssh -n 20` on the server right after a failed
+  run; it states the exact reason. The usual ones:
+  1. Bad ownership or modes on `~blogdeploy/.ssh` (see the permissions
+     block in step 2) — the log says "bad ownership or modes".
+  2. Key mismatch — the "Configure SSH" step in the failed run prints the
+    fingerprint the runner offered; compare with
+    `ssh-keygen -lf /home/blogdeploy/.ssh/authorized_keys` on the server.
+  3. A malformed options prefix on the `authorized_keys` line (unbalanced
+     quotes) makes sshd skip the line — it must be exactly one line.
+- **rsync succeeds but the site doesn't update** — check that your web
+  server actually serves `/var/www/blog` and that `BLOG_BASE_URL` matches
+  the public URL.
 
 ## Key rotation
 

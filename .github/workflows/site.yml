@@ -86,6 +86,8 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -T 15 "$HOST" > ~/.ssh/known_hosts
           test -s ~/.ssh/known_hosts || { echo "ssh-keyscan got no host key from $HOST"; exit 1; }
+          echo "Offering key with fingerprint (compare with authorized_keys on the server):"
+          ssh-keygen -y -f ~/.ssh/deploy_key | ssh-keygen -lf -
 
       # The target path is "/" because the key's forced rrsync command
       # jails the session to the blog directory on the server.
