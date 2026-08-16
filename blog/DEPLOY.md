@@ -163,6 +163,27 @@ Rotate by generating a new keypair, replacing the line in
 client can be revoked and re-created in the Tailscale console at any time;
 runs in flight fail safely.
 
+## Future: direct server access for Claude Code sessions (not set up)
+
+Today, Claude Code cloud sessions are not on the tailnet — server-side
+fixes (like repairing `authorized_keys`) need a human on the server. To
+let a session do that maintenance itself one day:
+
+1. **Environment network policy**: allow the Tailscale control plane and
+   DERP relays (`controlplane.tailscale.com`, `login.tailscale.com`,
+   `pkgs.tailscale.com`, `*.tailscale.com` derp endpoints) so the sandbox
+   can install and start Tailscale.
+2. **Auth key**: create an ephemeral, pre-authorized, **tagged** key (a
+   dedicated `tag:claude`, not `tag:ci`) and expose it to the environment
+   as a secret env var; sessions join with it and evaporate afterward.
+3. **ACL**: `tag:claude` may reach the server on port 22 only.
+4. **Server auth**: either enable Tailscale SSH with an ACL rule granting
+   `tag:claude` a maintenance user, or install a dedicated key for one
+   (with narrowly scoped sudo if root actions are needed).
+
+Trade-off: this deliberately weakens session isolation — a compromised
+session could then reach the server. Keep the tag's ACL minimal.
+
 ## Retiring the GitHub Pages copy
 
 The Pages deploy (`deploy-pages` job) keeps working as a staging mirror. To
