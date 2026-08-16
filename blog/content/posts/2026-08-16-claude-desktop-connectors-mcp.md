@@ -4,6 +4,8 @@ date: 2026-08-16T20:32:46Z
 slug: "claude-desktop-connectors-mcp"
 tags: ["mcp", "claude", "macos"]
 draft: false
+image: "images/library/patch-cables-01520a09.jpg"
+imageCredit: "Photo: unknown photographer, CC0 (via Openverse)"
 ---
 
 Claude Desktop connectors are plain MCP servers on disk. Claude Code can run
