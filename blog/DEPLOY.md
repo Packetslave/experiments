@@ -25,11 +25,11 @@ As root on the server:
 
 ```bash
 useradd --create-home --shell /bin/sh blogdeploy
-mkdir -p /var/www/blog
-chown blogdeploy:blogdeploy /var/www/blog
+mkdir -p /var/www/incrementaldreams.com
+chown blogdeploy:blogdeploy /var/www/incrementaldreams.com
 ```
 
-Point your web server (nginx, Caddy, ...) at `/var/www/blog`.
+Point your web server (nginx, Caddy, ...) at `/var/www/incrementaldreams.com`.
 
 ## 2. Server: restricted SSH key
 
@@ -46,7 +46,7 @@ than 3.2.4, copy it from `/usr/share/doc/rsync/scripts/rrsync`).
 `/home/blogdeploy/.ssh/authorized_keys` (one line):
 
 ```
-from="100.64.0.0/10",command="/usr/bin/rrsync -wo /var/www/blog",restrict ssh-ed25519 AAAA...your-public-key... github-actions blog deploy
+from="100.64.0.0/10",command="/usr/bin/rrsync -wo /var/www/incrementaldreams.com",restrict ssh-ed25519 AAAA...your-public-key... github-actions blog deploy
 ```
 
 What each part does:
@@ -54,7 +54,7 @@ What each part does:
 - `from="100.64.0.0/10"` — the key only works from Tailscale addresses
   (the CGNAT range Tailscale uses), even if SSH is somehow reachable
   another way.
-- `command="/usr/bin/rrsync -wo /var/www/blog"` — every session runs rrsync
+- `command="/usr/bin/rrsync -wo /var/www/incrementaldreams.com"` — every session runs rrsync
   and nothing else; `-wo` makes it write-only and jails it to that directory.
 - `restrict` — disables port/agent/X11 forwarding and PTY allocation.
 
@@ -130,11 +130,11 @@ Repository **variables**:
 
 Set `SERVER_DEPLOY` to `true`, then trigger "Deploy site" manually
 (`workflow_dispatch`) or push any change under `blog/`. The `deploy-server`
-job should join the tailnet, rsync `blog/public/` to `/var/www/blog`, and the
+job should join the tailnet, rsync `blog/public/` to `/var/www/incrementaldreams.com`, and the
 ephemeral node should vanish from the admin console after the run.
 
 The rsync target in the workflow is `:/` — that is not the server root; the
-forced rrsync command maps it to `/var/www/blog`.
+forced rrsync command maps it to `/var/www/incrementaldreams.com`.
 
 ## Troubleshooting
 
@@ -152,11 +152,11 @@ forced rrsync command maps it to `/var/www/blog`.
     `ssh-keygen -lf /home/blogdeploy/.ssh/authorized_keys` on the server.
   3. A malformed options prefix on the `authorized_keys` line (unbalanced
      quotes) makes sshd skip the line — it must be exactly one line.
-- **`FileNotFoundError: ... '/var/www/blog'` from rrsync** — auth worked;
+- **`FileNotFoundError: ... '/var/www/incrementaldreams.com'` from rrsync** — auth worked;
   the target directory is missing on the server. Create it (step 1):
-  `sudo mkdir -p /var/www/blog && sudo chown blogdeploy:blogdeploy /var/www/blog`.
+  `sudo mkdir -p /var/www/incrementaldreams.com && sudo chown blogdeploy:blogdeploy /var/www/incrementaldreams.com`.
 - **rsync succeeds but the site doesn't update** — check that your web
-  server actually serves `/var/www/blog` and that `BLOG_BASE_URL` matches
+  server actually serves `/var/www/incrementaldreams.com` and that `BLOG_BASE_URL` matches
   the public URL.
 
 ## Key rotation
