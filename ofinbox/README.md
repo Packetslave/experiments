@@ -41,6 +41,7 @@ make test           # unit tests (no OmniFocus needed)
 | `f` | file to a project (type-to-filter picker) |
 | `t` | add a tag (type-to-filter picker; repeat for more tags) |
 | `!` | toggle flag |
+| `enter` | open an action group's subtasks in the queue |
 | `e` | edit title |
 | `s` | set defer date |
 | `u` | set due date |
@@ -49,6 +50,18 @@ make test           # unit tests (no OmniFocus needed)
 
 Completing, dropping, or filing an item removes it from the session and
 counts toward the "processed" tally in the header.
+
+### Action groups (items with subtasks)
+
+An item with children shows a `▸ N subtasks` badge. All actions treat the
+group as one unit — `f` files the whole subtree intact, which is usually
+what a multi-part capture wants. `enter` instead fetches the children
+(lazily, one osascript round trip for that group) and splices them into
+the queue ahead of the parent, each labeled `under "…"`, so you can
+process them individually; the parent comes up last as a normal item.
+Because OmniFocus cascades complete/drop to the whole subtree, `c` and
+`d` on a group must be pressed twice to confirm. `r` collapses any
+opened groups (it reloads the top-level inbox).
 
 ### Dates
 

@@ -84,3 +84,51 @@ func TestDemoClientLifecycle(t *testing.T) {
 		t.Fatal("Complete with bad ID: expected error")
 	}
 }
+
+func TestDemoClientChildren(t *testing.T) {
+	ctx := context.Background()
+	c := NewDemoClient()
+
+	tasks, _ := c.InboxTasks(ctx)
+	var group Task
+	for _, task := range tasks {
+		if task.ParentID != "" {
+			t.Fatalf("InboxTasks returned a child: %+v", task)
+		}
+		if task.ChildCount > 0 {
+			group = task
+		}
+	}
+	if group.ID == "" {
+		t.Fatal("demo data has no action group")
+	}
+
+	kids, err := c.Children(ctx, group.ID)
+	if err != nil || len(kids) != group.ChildCount {
+		t.Fatalf("Children: %v (%d kids, want %d)", err, len(kids), group.ChildCount)
+	}
+	var nested Task
+	for _, k := range kids {
+		if k.ParentID != group.ID {
+			t.Fatalf("child %s has ParentID %q, want %q", k.ID, k.ParentID, group.ID)
+		}
+		if k.ChildCount > 0 {
+			nested = k
+		}
+	}
+	if nested.ID == "" {
+		t.Fatal("demo data has no nested action group")
+	}
+
+	// Completing the group cascades to all descendants.
+	if err := c.Complete(ctx, group.ID); err != nil {
+		t.Fatalf("Complete group: %v", err)
+	}
+	if _, err := c.Children(ctx, nested.ID); err == nil {
+		t.Fatal("nested child survived cascade")
+	}
+
+	if _, err := c.Children(ctx, "no-such-id"); err == nil {
+		t.Fatal("Children with bad ID: expected error")
+	}
+}

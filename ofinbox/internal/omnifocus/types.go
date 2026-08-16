@@ -10,13 +10,15 @@ import (
 
 // Task is an OmniFocus task (typically an inbox item).
 type Task struct {
-	ID        string
-	Name      string
-	Note      string
-	Flagged   bool
-	DeferDate *time.Time
-	DueDate   *time.Time
-	Tags      []string
+	ID         string
+	Name       string
+	Note       string
+	Flagged    bool
+	DeferDate  *time.Time
+	DueDate    *time.Time
+	Tags       []string
+	ChildCount int    // direct subtasks; > 0 means this is an action group
+	ParentID   string // containing task's ID for fetched children, "" for top-level inbox items
 }
 
 // Project is a filing destination.
@@ -37,6 +39,8 @@ type Tag struct {
 // the UI never holds live references to OmniFocus objects.
 type Client interface {
 	InboxTasks(ctx context.Context) ([]Task, error)
+	// Children returns the direct subtasks of an action group, with ParentID set.
+	Children(ctx context.Context, taskID string) ([]Task, error)
 	Projects(ctx context.Context) ([]Project, error)
 	Tags(ctx context.Context) ([]Tag, error)
 

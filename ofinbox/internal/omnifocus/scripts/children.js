@@ -1,13 +1,14 @@
-// Returns the OmniFocus inbox as a JSON array.
+// Returns the direct children of one task as a JSON array. argv: [taskID]
 //
-// Properties are fetched columnar-style (one Apple Event per property for
-// the whole list, e.g. tasks.name() -> all names) instead of per-task.
-// Per-task access costs one Apple Event per property per task, which takes
-// ~45s on a ~200-item inbox; this form takes well under a second.
-function run() {
+// Same columnar-fetch approach as inbox.js: one Apple Event per property for
+// the whole child list, never per child.
+function run(argv) {
+  const taskID = argv[0];
   const app = Application('OmniFocus');
   const doc = app.defaultDocument;
-  const tasks = doc.inboxTasks;
+  const matches = doc.flattenedTasks.whose({ id: taskID })();
+  if (matches.length === 0) throw new Error('task not found: ' + taskID);
+  const tasks = matches[0].tasks;
   const ids = tasks.id();
   const names = tasks.name();
   const notes = tasks.note();
@@ -26,6 +27,7 @@ function run() {
       dueDate: dues[i] ? dues[i].toISOString() : null,
       tags: tagNames[i] || [],
       childCount: childCounts[i] || 0,
+      parentID: taskID,
     };
   });
   return JSON.stringify(out);

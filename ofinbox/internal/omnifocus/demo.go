@@ -9,6 +9,9 @@ import (
 
 // DemoClient is an in-memory Client with sample data, for trying the TUI
 // without OmniFocus (or on non-macOS machines) and for tests.
+//
+// tasks holds top-level items and children in one flat slice, linked by
+// ParentID; ChildCount is derived, never stored.
 type DemoClient struct {
 	mu       sync.Mutex
 	tasks    []Task
@@ -27,6 +30,11 @@ func NewDemoClient() *DemoClient {
 			{ID: "t4", Name: "Fix flaky CI job on experiments repo"},
 			{ID: "t5", Name: "Read \"A Philosophy of Software Design\""},
 			{ID: "t6", Name: "Buy replacement furnace filter", Note: "16x25x1 MERV 11"},
+			{ID: "t7", Name: "Plan Tahoe ski weekend", Note: "Captured from email thread with Sam."},
+			{ID: "t7a", ParentID: "t7", Name: "Check cabin availability"},
+			{ID: "t7b", ParentID: "t7", Name: "Compare lift ticket prices", Tags: []string{"errand"}},
+			{ID: "t7c", ParentID: "t7", Name: "Sort out rental gear"},
+			{ID: "t7c1", ParentID: "t7c", Name: "Find ski boots in garage"},
 		},
 		projects: []Project{
 			{ID: "p1", Name: "Home maintenance", Folder: "Personal", Status: "active"},
@@ -46,11 +54,43 @@ func NewDemoClient() *DemoClient {
 	}
 }
 
+// childCount counts direct children. Callers must hold c.mu.
+func (c *DemoClient) childCount(id string) int {
+	n := 0
+	for _, t := range c.tasks {
+		if t.ParentID == id {
+			n++
+		}
+	}
+	return n
+}
+
 func (c *DemoClient) InboxTasks(ctx context.Context) ([]Task, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	out := make([]Task, len(c.tasks))
-	copy(out, c.tasks)
+	var out []Task
+	for _, t := range c.tasks {
+		if t.ParentID == "" {
+			t.ChildCount = c.childCount(t.ID)
+			out = append(out, t)
+		}
+	}
+	return out, nil
+}
+
+func (c *DemoClient) Children(ctx context.Context, taskID string) ([]Task, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, err := c.find(taskID); err != nil {
+		return nil, err
+	}
+	var out []Task
+	for _, t := range c.tasks {
+		if t.ParentID == taskID {
+			t.ChildCount = c.childCount(t.ID)
+			out = append(out, t)
+		}
+	}
 	return out, nil
 }
 
@@ -79,22 +119,41 @@ func (c *DemoClient) find(taskID string) (int, error) {
 	return -1, fmt.Errorf("task not found: %s", taskID)
 }
 
+// remove deletes a task and all its descendants, mirroring OmniFocus's
+// cascade on complete/drop/move of an action group. Callers must hold c.mu.
 func (c *DemoClient) remove(taskID string) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	i, err := c.find(taskID)
-	if err != nil {
+	if _, err := c.find(taskID); err != nil {
 		return err
 	}
-	c.tasks = append(c.tasks[:i], c.tasks[i+1:]...)
+	doomed := map[string]bool{taskID: true}
+	for grew := true; grew; {
+		grew = false
+		for _, t := range c.tasks {
+			if t.ParentID != "" && doomed[t.ParentID] && !doomed[t.ID] {
+				doomed[t.ID] = true
+				grew = true
+			}
+		}
+	}
+	kept := c.tasks[:0]
+	for _, t := range c.tasks {
+		if !doomed[t.ID] {
+			kept = append(kept, t)
+		}
+	}
+	c.tasks = kept
 	return nil
 }
 
 func (c *DemoClient) Complete(ctx context.Context, taskID string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.remove(taskID)
 }
 
 func (c *DemoClient) Drop(ctx context.Context, taskID string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.remove(taskID)
 }
 
@@ -103,12 +162,7 @@ func (c *DemoClient) MoveToProject(ctx context.Context, taskID, projectID string
 	defer c.mu.Unlock()
 	for _, p := range c.projects {
 		if p.ID == projectID {
-			i, err := c.find(taskID)
-			if err != nil {
-				return err
-			}
-			c.tasks = append(c.tasks[:i], c.tasks[i+1:]...)
-			return nil
+			return c.remove(taskID)
 		}
 	}
 	return fmt.Errorf("project not found: %s", projectID)

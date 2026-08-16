@@ -102,6 +102,18 @@ func (m Model) View() string {
 	card.WriteString(title)
 
 	var meta []string
+	if task.ChildCount > 0 {
+		sub := "subtasks"
+		if task.ChildCount == 1 {
+			sub = "subtask"
+		}
+		meta = append(meta, accentStyle.Render(fmt.Sprintf("▸ %d %s", task.ChildCount, sub)))
+	}
+	if task.ParentID != "" {
+		if pi, ok := m.taskIndex(task.ParentID); ok {
+			meta = append(meta, dimStyle.Render("under “"+displayName(m.tasks[pi].Name)+"”"))
+		}
+	}
 	if len(task.Tags) > 0 {
 		meta = append(meta, tagStyle.Render("# "+strings.Join(task.Tags, ", ")))
 	}
@@ -134,7 +146,7 @@ func (m Model) View() string {
 	b.WriteString(m.statusLine())
 	b.WriteString("\n")
 	b.WriteString("  " + dimStyle.Render("j/k next/prev · g/G first/last · c complete · d drop · f file · t tag · ! flag") + "\n")
-	b.WriteString("  " + dimStyle.Render("e edit title · s defer · u due · r refresh · q quit") + "\n")
+	b.WriteString("  " + dimStyle.Render("e edit title · s defer · u due · enter subtasks · r refresh · q quit") + "\n")
 	return b.String()
 }
 

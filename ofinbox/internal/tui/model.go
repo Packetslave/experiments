@@ -4,6 +4,7 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -49,6 +50,11 @@ type Model struct {
 	picker   picker
 	input    textinput.Model
 	inputErr string
+
+	// pending destructive-action confirmation for an action group: the key
+	// must be pressed twice on the same task before it runs.
+	confirmKey string
+	confirmID  string
 
 	busy        bool
 	status      string
@@ -106,6 +112,22 @@ func loadCmd(client omnifocus.Client) tea.Cmd {
 	}
 }
 
+// childrenMsg carries the lazily fetched subtasks of one action group.
+type childrenMsg struct {
+	parentID string
+	tasks    []omnifocus.Task
+	err      error
+}
+
+func childrenCmd(client omnifocus.Client, parentID string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
+		defer cancel()
+		kids, err := client.Children(ctx, parentID)
+		return childrenMsg{parentID: parentID, tasks: kids, err: err}
+	}
+}
+
 func actionCmd(taskID string, call func(context.Context) error, done actionDoneMsg) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
@@ -158,19 +180,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if i, ok := m.taskIndex(msg.taskID); ok {
 			if msg.remove {
-				m.tasks = append(m.tasks[:i], m.tasks[i+1:]...)
+				m.removeFromQueue(msg.taskID)
 				m.processed++
-				if m.index > i {
-					m.index--
-				}
-				if m.index >= len(m.tasks) {
-					m.index = max(0, len(m.tasks)-1)
-				}
 			} else if msg.apply != nil {
 				msg.apply(&m.tasks[i])
 			}
 		}
 		m.setStatus(msg.status, false)
+		return m, nil
+
+	case childrenMsg:
+		m.busy = false
+		if msg.err != nil {
+			m.setStatus("✗ "+msg.err.Error(), true)
+			return m, nil
+		}
+		i, ok := m.taskIndex(msg.parentID)
+		if !ok {
+			return m, nil
+		}
+		if len(msg.tasks) == 0 {
+			m.tasks[i].ChildCount = 0
+			m.setStatus("no subtasks", false)
+			return m, nil
+		}
+		// Splice children before the parent so the parent is processed last;
+		// once its subtasks are dispatched, it comes up as a normal item.
+		out := make([]omnifocus.Task, 0, len(m.tasks)+len(msg.tasks))
+		out = append(out, m.tasks[:i]...)
+		out = append(out, msg.tasks...)
+		out = append(out, m.tasks[i:]...)
+		parentName := displayName(m.tasks[i].Name)
+		m.tasks = out
+		m.tasks[i+len(msg.tasks)].ChildCount = len(msg.tasks)
+		m.index = i
+		m.setStatus(fmt.Sprintf("▾ %d subtasks of %s", len(msg.tasks), parentName), false)
 		return m, nil
 
 	case tea.KeyMsg:
@@ -247,6 +291,11 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 
+	// Any key other than the awaited one abandons a pending confirmation.
+	if m.confirmKey != "" && key != m.confirmKey {
+		m.confirmKey, m.confirmID = "", ""
+	}
+
 	switch key {
 	case "q":
 		return m, tea.Quit
@@ -284,6 +333,9 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch key {
 	case "c":
+		if !m.confirmCascade("c", task, "completes") {
+			return m, nil
+		}
 		m.busy = true
 		id := task.ID
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
@@ -291,11 +343,28 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			actionDoneMsg{status: "✓ completed: " + displayName(task.Name), remove: true}))
 
 	case "d":
+		if !m.confirmCascade("d", task, "drops") {
+			return m, nil
+		}
 		m.busy = true
 		id := task.ID
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return m.client.Drop(ctx, id) },
 			actionDoneMsg{status: "⌫ dropped: " + displayName(task.Name), remove: true}))
+
+	case "enter":
+		if task.ChildCount == 0 {
+			return m, nil
+		}
+		// Already expanded: jump to the first child instead of re-fetching.
+		for i, t := range m.tasks {
+			if t.ParentID == task.ID {
+				m.index = i
+				return m, nil
+			}
+		}
+		m.busy = true
+		return m, tea.Batch(m.spin.Tick, childrenCmd(m.client, task.ID))
 
 	case "!":
 		m.busy = true
@@ -458,6 +527,64 @@ func (m Model) applyInput() (tea.Model, tea.Cmd) {
 }
 
 // --- helpers ---
+
+// confirmCascade gates a destructive key on an action group: the first press
+// arms a warning, the second press (same key, same task) reports true to let
+// the action run. Leaf tasks always pass.
+func (m *Model) confirmCascade(key string, task omnifocus.Task, verb string) bool {
+	if task.ChildCount == 0 {
+		return true
+	}
+	if m.confirmKey == key && m.confirmID == task.ID {
+		m.confirmKey, m.confirmID = "", ""
+		return true
+	}
+	m.confirmKey, m.confirmID = key, task.ID
+	sub := "subtasks"
+	if task.ChildCount == 1 {
+		sub = "subtask"
+	}
+	m.setStatus(fmt.Sprintf("⚠ %s %d %s too — press %s again to confirm", verb, task.ChildCount, sub, key), true)
+	return false
+}
+
+// removeFromQueue drops a task plus any of its dived-in descendants from the
+// visible queue (OmniFocus cascades complete/drop/move to the subtree), fixes
+// the cursor, and decrements the parent's badge when a child leaves.
+func (m *Model) removeFromQueue(id string) {
+	parentID := ""
+	if i, ok := m.taskIndex(id); ok {
+		parentID = m.tasks[i].ParentID
+	}
+	doomed := map[string]bool{id: true}
+	for grew := true; grew; {
+		grew = false
+		for _, t := range m.tasks {
+			if t.ParentID != "" && doomed[t.ParentID] && !doomed[t.ID] {
+				doomed[t.ID] = true
+				grew = true
+			}
+		}
+	}
+	kept := m.tasks[:0]
+	removedBefore := 0
+	for i, t := range m.tasks {
+		if doomed[t.ID] {
+			if i < m.index {
+				removedBefore++
+			}
+			continue
+		}
+		kept = append(kept, t)
+	}
+	m.tasks = kept
+	m.index = max(0, min(m.index-removedBefore, len(m.tasks)-1))
+	if parentID != "" {
+		if pi, ok := m.taskIndex(parentID); ok && m.tasks[pi].ChildCount > 0 {
+			m.tasks[pi].ChildCount--
+		}
+	}
+}
 
 func (m *Model) current() (omnifocus.Task, bool) {
 	if m.index < 0 || m.index >= len(m.tasks) {

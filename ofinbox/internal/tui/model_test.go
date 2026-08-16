@@ -196,6 +196,113 @@ func TestPickerFilters(t *testing.T) {
 	}
 }
 
+// groupIndex moves the cursor onto the demo action group ("Plan Tahoe ski
+// weekend", 3 subtasks) and returns its index.
+func groupIndex(t *testing.T, m *Model) int {
+	t.Helper()
+	for i, task := range m.tasks {
+		if task.ChildCount > 0 {
+			m.index = i
+			return i
+		}
+	}
+	t.Fatal("demo data has no action group")
+	return -1
+}
+
+func TestDiveSplicesChildrenBeforeParent(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initial := len(m.tasks)
+	i := groupIndex(t, &m)
+	parentID := m.tasks[i].ID
+	kids := m.tasks[i].ChildCount
+
+	m = drive(t, m, key("enter"))
+	if len(m.tasks) != initial+kids {
+		t.Fatalf("after dive: %d tasks, want %d", len(m.tasks), initial+kids)
+	}
+	if m.index != i {
+		t.Fatalf("cursor = %d, want first child at %d", m.index, i)
+	}
+	if m.tasks[i].ParentID != parentID {
+		t.Fatalf("task at cursor has ParentID %q, want %q", m.tasks[i].ParentID, parentID)
+	}
+	if m.tasks[i+kids].ID != parentID {
+		t.Fatalf("parent not directly after its children")
+	}
+
+	// A second enter on the parent jumps to the first child, no re-fetch.
+	m.index = i + kids
+	m = drive(t, m, key("enter"))
+	if m.index != i || len(m.tasks) != initial+kids {
+		t.Fatalf("re-enter: index=%d len=%d, want %d/%d", m.index, len(m.tasks), i, initial+kids)
+	}
+}
+
+func TestCascadeGuardNeedsDoublePress(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initial := len(m.tasks)
+	groupIndex(t, &m)
+
+	m = drive(t, m, key("c"))
+	if len(m.tasks) != initial {
+		t.Fatal("first press on a group should not complete it")
+	}
+	if m.confirmKey != "c" || !m.statusIsErr {
+		t.Fatalf("expected armed confirmation, got key=%q status=%q", m.confirmKey, m.status)
+	}
+
+	// Any other key disarms.
+	m = drive(t, m, key("j"))
+	if m.confirmKey != "" {
+		t.Fatal("navigation should abandon the pending confirmation")
+	}
+	m = drive(t, m, key("k"))
+
+	m = drive(t, m, key("c"))
+	m = drive(t, m, key("c"))
+	if len(m.tasks) != initial-1 {
+		t.Fatalf("after confirmed complete: %d tasks, want %d", len(m.tasks), initial-1)
+	}
+}
+
+func TestChildRemovalDecrementsParentBadge(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	i := groupIndex(t, &m)
+	parentID := m.tasks[i].ID
+	kids := m.tasks[i].ChildCount
+
+	m = drive(t, m, key("enter"))
+	m = drive(t, m, key("c")) // first child is a leaf: completes immediately
+	pi, ok := m.taskIndex(parentID)
+	if !ok {
+		t.Fatal("parent vanished from queue")
+	}
+	if got := m.tasks[pi].ChildCount; got != kids-1 {
+		t.Fatalf("parent badge = %d, want %d", got, kids-1)
+	}
+}
+
+func TestParentRemovalSweepsSplicedChildren(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initial := len(m.tasks)
+	i := groupIndex(t, &m)
+	kids := m.tasks[i].ChildCount
+
+	m = drive(t, m, key("enter"))
+	m.index = i + kids // back onto the parent
+	m = drive(t, m, key("d"))
+	m = drive(t, m, key("d"))
+	if len(m.tasks) != initial-1 {
+		t.Fatalf("after dropping parent: %d tasks, want %d (children swept too)", len(m.tasks), initial-1)
+	}
+	for _, task := range m.tasks {
+		if task.ParentID != "" {
+			t.Fatalf("orphaned spliced child left in queue: %+v", task)
+		}
+	}
+}
+
 func TestEscCancelsPicker(t *testing.T) {
 	m := loaded(t, omnifocus.NewDemoClient())
 	initial := len(m.tasks)

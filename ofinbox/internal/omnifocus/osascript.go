@@ -50,13 +50,15 @@ func firstLine(s string) string {
 }
 
 type taskJSON struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Note      string   `json:"note"`
-	Flagged   bool     `json:"flagged"`
-	DeferDate *string  `json:"deferDate"`
-	DueDate   *string  `json:"dueDate"`
-	Tags      []string `json:"tags"`
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	Note       string   `json:"note"`
+	Flagged    bool     `json:"flagged"`
+	DeferDate  *string  `json:"deferDate"`
+	DueDate    *string  `json:"dueDate"`
+	Tags       []string `json:"tags"`
+	ChildCount int      `json:"childCount"`
+	ParentID   string   `json:"parentID"`
 }
 
 func parseISO(s *string) *time.Time {
@@ -71,28 +73,42 @@ func parseISO(s *string) *time.Time {
 	return &local
 }
 
+func parseTasks(out string) ([]Task, error) {
+	var raw []taskJSON
+	if err := json.Unmarshal([]byte(out), &raw); err != nil {
+		return nil, fmt.Errorf("parsing task JSON: %w", err)
+	}
+	tasks := make([]Task, 0, len(raw))
+	for _, r := range raw {
+		tasks = append(tasks, Task{
+			ID:         r.ID,
+			Name:       r.Name,
+			Note:       r.Note,
+			Flagged:    r.Flagged,
+			DeferDate:  parseISO(r.DeferDate),
+			DueDate:    parseISO(r.DueDate),
+			Tags:       r.Tags,
+			ChildCount: r.ChildCount,
+			ParentID:   r.ParentID,
+		})
+	}
+	return tasks, nil
+}
+
 func (c *OsascriptClient) InboxTasks(ctx context.Context) ([]Task, error) {
 	out, err := c.run(ctx, "inbox.js")
 	if err != nil {
 		return nil, err
 	}
-	var raw []taskJSON
-	if err := json.Unmarshal([]byte(out), &raw); err != nil {
-		return nil, fmt.Errorf("parsing inbox JSON: %w", err)
+	return parseTasks(out)
+}
+
+func (c *OsascriptClient) Children(ctx context.Context, taskID string) ([]Task, error) {
+	out, err := c.run(ctx, "children.js", taskID)
+	if err != nil {
+		return nil, err
 	}
-	tasks := make([]Task, 0, len(raw))
-	for _, r := range raw {
-		tasks = append(tasks, Task{
-			ID:        r.ID,
-			Name:      r.Name,
-			Note:      r.Note,
-			Flagged:   r.Flagged,
-			DeferDate: parseISO(r.DeferDate),
-			DueDate:   parseISO(r.DueDate),
-			Tags:      r.Tags,
-		})
-	}
-	return tasks, nil
+	return parseTasks(out)
 }
 
 func (c *OsascriptClient) Projects(ctx context.Context) ([]Project, error) {
