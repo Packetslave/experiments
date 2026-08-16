@@ -10,8 +10,11 @@ as little as possible:
 - The deploy key is **restricted by a forced command** (`rrsync`), so even a
   leaked key can only write files inside the blog directory — no shell, no
   reads, no port forwarding, nowhere else on the filesystem.
-- The server's host key is **pinned** in a repository variable, so the runner
-  refuses to talk to an impostor host.
+- The SSH host key is **learned over the tailnet at deploy time**
+  (`ssh-keyscan`). Tailscale's WireGuard layer already authenticates that
+  the MagicDNS name resolves to your real node, so the scan cannot be
+  intercepted from outside the tailnet — and there is no pinned key to go
+  stale when the server's host key rotates.
 
 The job stays disabled until the repository variable `SERVER_DEPLOY` is set
 to `true`, so you can land this setup incrementally.
@@ -112,7 +115,6 @@ Repository **variables**:
 | `BLOG_BASE_URL` | Public URL of the blog on your server | `https://example.com/blog/` |
 | `DEPLOY_SSH_USER` | Deploy user from step 1 | `blogdeploy` |
 | `DEPLOY_SSH_HOST` | Server's MagicDNS name or Tailscale IP | `myserver.tailnet-name.ts.net` |
-| `DEPLOY_KNOWN_HOSTS` | Pinned host key: output of `ssh-keyscan -t ed25519 <DEPLOY_SSH_HOST>` run from a machine on the tailnet | `myserver.tailnet-name.ts.net ssh-ed25519 AAAA...` |
 
 ## 5. Enable and test
 

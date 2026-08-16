@@ -73,12 +73,19 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
+      # The runner reaches the server over the tailnet, whose WireGuard
+      # layer already authenticates the peer node — so learning the SSH
+      # host key with ssh-keyscan at deploy time is safe, and there is
+      # no pinned known-hosts variable to maintain or let go stale.
       - name: Configure SSH
+        env:
+          HOST: ${{ vars.DEPLOY_SSH_HOST }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.BLOG_DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "${{ vars.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          ssh-keyscan -T 15 "$HOST" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts || { echo "ssh-keyscan got no host key from $HOST"; exit 1; }
 
       # The target path is "/" because the key's forced rrsync command
       # jails the session to the blog directory on the server.
