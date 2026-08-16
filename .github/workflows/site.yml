@@ -88,6 +88,8 @@ jobs:
           test -s ~/.ssh/known_hosts || { echo "ssh-keyscan got no host key from $HOST"; exit 1; }
           echo "Offering key with fingerprint (compare with authorized_keys on the server):"
           ssh-keygen -y -f ~/.ssh/deploy_key | ssh-keygen -lf -
+          echo "Ready-to-paste authorized_keys line for the server (public key, safe to log):"
+          printf 'from="100.64.0.0/10",command="/usr/bin/rrsync -wo /var/www/blog",restrict %s\n' "$(ssh-keygen -y -f ~/.ssh/deploy_key)"
 
       # The target path is "/" because the key's forced rrsync command
       # jails the session to the blog directory on the server.
