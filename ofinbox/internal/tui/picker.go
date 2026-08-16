@@ -15,15 +15,21 @@ type pickItem struct {
 	desc  string // secondary text, also matched when filtering
 }
 
+// createPickID marks the synthetic "create new …" row; the item's label is
+// the name to create.
+const createPickID = "\x00create"
+
 // picker is a minimal type-to-filter list: every printable key goes into the
 // filter, up/down moves the cursor, enter/esc are handled by the caller.
 type picker struct {
 	title      string
 	input      textinput.Model
 	items      []pickItem
-	filtered   []int // indexes into items
+	filtered   []int // indexes into items; -1 is the synthetic create row
 	cursor     int   // index into filtered
 	maxVisible int
+	createKind string // "project"/"tag" enables the create row; "" disables
+	createName string // trimmed filter text the create row would use
 }
 
 func newPicker(title, placeholder string, items []pickItem) picker {
@@ -37,14 +43,22 @@ func newPicker(title, placeholder string, items []pickItem) picker {
 }
 
 func (p *picker) refilter() {
-	q := strings.ToLower(strings.TrimSpace(p.input.Value()))
+	p.createName = strings.TrimSpace(p.input.Value())
+	q := strings.ToLower(p.createName)
 	p.filtered = p.filtered[:0]
+	exact := false
 	for i, it := range p.items {
+		if strings.ToLower(it.label) == q {
+			exact = true
+		}
 		if q == "" ||
 			strings.Contains(strings.ToLower(it.label), q) ||
 			strings.Contains(strings.ToLower(it.desc), q) {
 			p.filtered = append(p.filtered, i)
 		}
+	}
+	if p.createKind != "" && q != "" && !exact {
+		p.filtered = append(p.filtered, -1)
 	}
 	if p.cursor >= len(p.filtered) {
 		p.cursor = len(p.filtered) - 1
@@ -79,6 +93,9 @@ func (p *picker) selected() (pickItem, bool) {
 	if len(p.filtered) == 0 {
 		return pickItem{}, false
 	}
+	if p.filtered[p.cursor] == -1 {
+		return pickItem{id: createPickID, label: p.createName}, true
+	}
 	return p.items[p.filtered[p.cursor]], true
 }
 
@@ -102,7 +119,12 @@ func (p *picker) view() string {
 			end = len(p.filtered)
 		}
 		for fi := start; fi < end; fi++ {
-			it := p.items[p.filtered[fi]]
+			var it pickItem
+			if p.filtered[fi] == -1 {
+				it = pickItem{label: "+ new " + p.createKind + ": \"" + p.createName + "\""}
+			} else {
+				it = p.items[p.filtered[fi]]
+			}
 			line := it.label
 			if it.desc != "" {
 				line += dimStyle.Render("  ·  "+it.desc)

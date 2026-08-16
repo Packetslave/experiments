@@ -115,6 +115,22 @@ func (c *DemoClient) Tags(ctx context.Context) ([]Tag, error) {
 	return out, nil
 }
 
+func (c *DemoClient) CreateProject(ctx context.Context, name string) (Project, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	p := Project{ID: fmt.Sprintf("p-new-%d", len(c.projects)+1), Name: name, Status: "active"}
+	c.projects = append(c.projects, p)
+	return p, nil
+}
+
+func (c *DemoClient) CreateTag(ctx context.Context, name string) (Tag, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	g := Tag{ID: fmt.Sprintf("g-new-%d", len(c.tags)+1), Name: name}
+	c.tags = append(c.tags, g)
+	return g, nil
+}
+
 func (c *DemoClient) find(taskID string) (int, error) {
 	for i, t := range c.tasks {
 		if t.ID == taskID {

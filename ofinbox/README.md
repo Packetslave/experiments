@@ -42,6 +42,11 @@ make test           # unit tests (no OmniFocus needed)
 | `l` | file a link item to the links project (see below) |
 | `o` | open a link item in the default browser |
 | `t` | add a tag (type-to-filter picker; repeat for more tags) |
+
+In the `f` and `t` pickers, typing a name that doesn't exactly match an
+existing project or tag adds a `+ new …` row at the bottom of the list;
+selecting it creates the project (top level, active) or tag (top level)
+and files/tags the item with it in one step.
 | `!` | toggle flag |
 | `enter` | open an action group's subtasks in the queue |
 | `e` | edit title |

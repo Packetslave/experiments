@@ -74,7 +74,7 @@ make test             # unit tests — run against the demo backend, no OmniFocu
 ./bin/ofinbox -demo   # built-in sample data, works on any platform
 ```
 
-Architecture: `internal/omnifocus` defines the `Client` interface with two implementations — `OsascriptClient` (embedded JXA scripts in `internal/omnifocus/scripts/`, run via `osascript -l JavaScript`) and `DemoClient` (in-memory, used by `-demo` and tests). `internal/tui` holds the Bubble Tea model/view. New OmniFocus operations need: a case in `scripts/task_action.js`, a method on both clients (and the interface), and a key binding in `internal/tui/model.go`.
+Architecture: `internal/omnifocus` defines the `Client` interface with two implementations — `OsascriptClient` (embedded JXA scripts in `internal/omnifocus/scripts/`, run via `osascript -l JavaScript`) and `DemoClient` (in-memory, used by `-demo` and tests). `internal/tui` holds the Bubble Tea model/view. New OmniFocus operations need: a case in `scripts/task_action.js` (task mutations) or their own script (e.g. `scripts/create.js` for project/tag creation), a method on both clients (and the interface), and a key binding in `internal/tui/model.go`. Structural mutations (moves, creation) must go through Omni Automation (`app.evaluateJavascript`) — the AppleScript bridge's `app.move` is broken.
 
 The JXA scripts can only be exercised on macOS with OmniFocus installed — CI and Linux dev environments build and test everything else via the demo backend.
 

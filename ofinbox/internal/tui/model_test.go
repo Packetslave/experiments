@@ -400,6 +400,82 @@ func TestOpenLinkOnNonLink(t *testing.T) {
 	}
 }
 
+func TestPickerCreateRow(t *testing.T) {
+	items := []pickItem{{id: "p1", label: "Health"}, {id: "p2", label: "Home maintenance"}}
+	p := newPicker("title", "ph", items)
+	p.createKind = "project"
+
+	p.update(key("Brand New"))
+	it, ok := p.selected()
+	if !ok || it.id != createPickID || it.label != "Brand New" {
+		t.Fatalf("selected = %+v, %v; want create row for \"Brand New\"", it, ok)
+	}
+
+	// An exact (case-insensitive) match suppresses the create row.
+	p2 := newPicker("title", "ph", items)
+	p2.createKind = "project"
+	p2.update(key("health"))
+	it, ok = p2.selected()
+	if !ok || it.id != "p1" {
+		t.Fatalf("selected = %+v, %v; want existing Health, no create row", it, ok)
+	}
+	if len(p2.filtered) != 1 {
+		t.Fatalf("filtered = %d rows, want 1 (no create row on exact match)", len(p2.filtered))
+	}
+}
+
+func TestFileToNewProject(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initialTasks := len(m.tasks)
+	initialProjects := len(m.projects)
+
+	m = drive(t, m, key("f"))
+	if m.mode != modePickProject {
+		t.Fatalf("mode = %v, want modePickProject", m.mode)
+	}
+	m = drive(t, m, key("Brand New Project"))
+	m = drive(t, m, key("enter"))
+
+	if len(m.tasks) != initialTasks-1 {
+		t.Fatalf("after filing: %d tasks, want %d", len(m.tasks), initialTasks-1)
+	}
+	if len(m.projects) != initialProjects+1 {
+		t.Fatalf("projects = %d, want %d", len(m.projects), initialProjects+1)
+	}
+	last := m.projects[len(m.projects)-1]
+	if last.Name != "Brand New Project" {
+		t.Fatalf("new project name = %q", last.Name)
+	}
+	if m.statusIsErr || !strings.Contains(m.status, "new project Brand New Project") {
+		t.Fatalf("status = %q", m.status)
+	}
+}
+
+func TestAddNewTag(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initialTags := len(m.tags)
+
+	m = drive(t, m, key("t"))
+	m = drive(t, m, key("brand-new-tag"))
+	m = drive(t, m, key("enter"))
+
+	if len(m.tags) != initialTags+1 {
+		t.Fatalf("tags = %d, want %d", len(m.tags), initialTags+1)
+	}
+	found := false
+	for _, g := range m.tasks[0].Tags {
+		if g == "brand-new-tag" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("task tags = %v, want brand-new-tag applied", m.tasks[0].Tags)
+	}
+	if m.statusIsErr || !strings.Contains(m.status, "brand-new-tag (new)") {
+		t.Fatalf("status = %q", m.status)
+	}
+}
+
 func TestEscCancelsPicker(t *testing.T) {
 	m := loaded(t, omnifocus.NewDemoClient())
 	initial := len(m.tasks)

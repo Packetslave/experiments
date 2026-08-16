@@ -68,6 +68,11 @@ type Client interface {
 	Projects(ctx context.Context) ([]Project, error)
 	Tags(ctx context.Context) ([]Tag, error)
 
+	// CreateProject / CreateTag create a new top-level project (active) or tag
+	// and return it with its assigned ID.
+	CreateProject(ctx context.Context, name string) (Project, error)
+	CreateTag(ctx context.Context, name string) (Tag, error)
+
 	Complete(ctx context.Context, taskID string) error
 	Drop(ctx context.Context, taskID string) error
 	MoveToProject(ctx context.Context, taskID, projectID string) error

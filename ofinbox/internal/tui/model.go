@@ -97,6 +97,11 @@ type actionDoneMsg struct {
 	remove bool
 	apply  func(*omnifocus.Task)
 	err    error
+
+	// set when the action created a project/tag, so the model's lists pick
+	// it up without a full reload.
+	newProject *omnifocus.Project
+	newTag     *omnifocus.Tag
 }
 
 func loadCmd(client omnifocus.Client) tea.Cmd {
@@ -184,6 +189,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.setStatus("✗ "+msg.err.Error(), true)
 			return m, nil
+		}
+		if msg.newProject != nil {
+			m.projects = append(m.projects, *msg.newProject)
+		}
+		if msg.newTag != nil {
+			m.tags = append(m.tags, *msg.newTag)
 		}
 		if i, ok := m.taskIndex(msg.taskID); ok {
 			if msg.remove {
@@ -446,6 +457,7 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			items = append(items, pickItem{id: p.ID, label: p.Name, desc: desc})
 		}
 		m.picker = newPicker("File \""+displayName(task.Name)+"\" to project:", "type to filter projects", items)
+		m.picker.createKind = "project"
 		m.mode = modePickProject
 		return m, textinput.Blink
 
@@ -455,6 +467,7 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			items = append(items, pickItem{id: g.ID, label: g.Name})
 		}
 		m.picker = newPicker("Add tag to \""+displayName(task.Name)+"\":", "type to filter tags", items)
+		m.picker.createKind = "tag"
 		m.mode = modePickTag
 		return m, textinput.Blink
 
@@ -498,6 +511,51 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 	m.busy = true
 
 	switch {
+	case wasProjectPick && it.id == createPickID:
+		name := it.label
+		taskName := displayName(task.Name)
+		client := m.client
+		return m, tea.Batch(m.spin.Tick, func() tea.Msg {
+			ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
+			defer cancel()
+			proj, err := client.CreateProject(ctx, name)
+			if err != nil {
+				return actionDoneMsg{taskID: id, err: err}
+			}
+			if err := client.MoveToProject(ctx, id, proj.ID); err != nil {
+				return actionDoneMsg{taskID: id, err: err}
+			}
+			return actionDoneMsg{taskID: id, remove: true, newProject: &proj,
+				status: "→ filed to new project " + proj.Name + ": " + taskName}
+		})
+
+	case !wasProjectPick && it.id == createPickID:
+		name := it.label
+		taskName := displayName(task.Name)
+		client := m.client
+		return m, tea.Batch(m.spin.Tick, func() tea.Msg {
+			ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
+			defer cancel()
+			tag, err := client.CreateTag(ctx, name)
+			if err != nil {
+				return actionDoneMsg{taskID: id, err: err}
+			}
+			if err := client.AddTag(ctx, id, tag.ID); err != nil {
+				return actionDoneMsg{taskID: id, err: err}
+			}
+			tagName := tag.Name
+			return actionDoneMsg{taskID: id, newTag: &tag,
+				status: "# tagged " + tagName + " (new): " + taskName,
+				apply: func(t *omnifocus.Task) {
+					for _, existing := range t.Tags {
+						if existing == tagName {
+							return
+						}
+					}
+					t.Tags = append(t.Tags, tagName)
+				}}
+		})
+
 	case wasProjectPick:
 		pickID := it.id
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,

@@ -145,6 +145,37 @@ func (c *OsascriptClient) Tags(ctx context.Context) ([]Tag, error) {
 	return tags, nil
 }
 
+func (c *OsascriptClient) create(ctx context.Context, kind, name string) (string, string, error) {
+	out, err := c.run(ctx, "create.js", kind, name)
+	if err != nil {
+		return "", "", err
+	}
+	var made struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal([]byte(out), &made); err != nil {
+		return "", "", fmt.Errorf("parsing create JSON: %w", err)
+	}
+	return made.ID, made.Name, nil
+}
+
+func (c *OsascriptClient) CreateProject(ctx context.Context, name string) (Project, error) {
+	id, madeName, err := c.create(ctx, "project", name)
+	if err != nil {
+		return Project{}, err
+	}
+	return Project{ID: id, Name: madeName, Status: "active"}, nil
+}
+
+func (c *OsascriptClient) CreateTag(ctx context.Context, name string) (Tag, error) {
+	id, madeName, err := c.create(ctx, "tag", name)
+	if err != nil {
+		return Tag{}, err
+	}
+	return Tag{ID: id, Name: madeName}, nil
+}
+
 func (c *OsascriptClient) action(ctx context.Context, args ...string) error {
 	_, err := c.run(ctx, "task_action.js", args...)
 	return err
