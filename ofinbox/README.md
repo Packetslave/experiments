@@ -40,6 +40,7 @@ make test           # unit tests (no OmniFocus needed)
 | `d` | drop |
 | `f` | file to a project (type-to-filter picker) |
 | `l` | file a link item to the links project (see below) |
+| `o` | open a link item in the default browser |
 | `t` | add a tag (type-to-filter picker; repeat for more tags) |
 | `!` | toggle flag |
 | `enter` | open an action group's subtasks in the queue |
@@ -61,7 +62,9 @@ and a URL-only title qualifies regardless of the note. Prose around the
 URL disqualifies it. `l` files a link in one keystroke: it adds the
 `NoAction` tag and moves the item to the "Links to Review" project
 (preferring the one in the "Personal" folder). Both names are hardcoded
-for now and will become preferences later.
+for now and will become preferences later. `o` opens a link in the
+default browser (via `open` on macOS, `xdg-open` elsewhere) without
+touching the item, so you can peek before deciding what to do with it.
 
 ### Action groups (items with subtasks)
 

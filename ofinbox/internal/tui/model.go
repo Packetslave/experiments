@@ -196,6 +196,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setStatus(msg.status, false)
 		return m, nil
 
+	case openedMsg:
+		if msg.err != nil {
+			m.setStatus("✗ open failed: "+msg.err.Error(), true)
+		} else {
+			m.setStatus("🌐 opened: "+msg.url, false)
+		}
+		return m, nil
+
 	case childrenMsg:
 		m.busy = false
 		if msg.err != nil {
@@ -389,6 +397,14 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m.client.MoveToProject(ctx, id, proj.ID)
 			},
 			actionDoneMsg{status: "🔗 → " + proj.Name + " +" + tag.Name + ": " + label, remove: true}))
+
+	case "o":
+		url, ok := task.LinkURL()
+		if !ok {
+			m.setStatus("not a link (title or note must be just a URL)", true)
+			return m, nil
+		}
+		return m, openURLCmd(url)
 
 	case "enter":
 		if task.ChildCount == 0 {

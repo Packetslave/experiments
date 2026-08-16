@@ -347,6 +347,59 @@ func TestFileLinkOnNonLink(t *testing.T) {
 	}
 }
 
+func TestOpenLinkShortcut(t *testing.T) {
+	var opened string
+	orig := openURL
+	openURL = func(url string) error { opened = url; return nil }
+	defer func() { openURL = orig }()
+
+	m := loaded(t, omnifocus.NewDemoClient())
+	initial := len(m.tasks)
+	var wantURL string
+	found := false
+	for i, task := range m.tasks {
+		if url, ok := task.LinkURL(); ok {
+			m.index = i
+			wantURL = url
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("demo data has no link item")
+	}
+
+	m = drive(t, m, key("o"))
+	if opened != wantURL {
+		t.Fatalf("opened %q, want %q", opened, wantURL)
+	}
+	if len(m.tasks) != initial {
+		t.Fatal("o should not change the queue")
+	}
+	if m.statusIsErr || !strings.Contains(m.status, wantURL) {
+		t.Fatalf("status = %q", m.status)
+	}
+}
+
+func TestOpenLinkOnNonLink(t *testing.T) {
+	orig := openURL
+	openURL = func(url string) error {
+		t.Fatalf("openURL called with %q on a non-link", url)
+		return nil
+	}
+	defer func() { openURL = orig }()
+
+	m := loaded(t, omnifocus.NewDemoClient())
+	if _, ok := m.tasks[0].LinkURL(); ok {
+		t.Fatal("expected first demo task to not be a link")
+	}
+
+	m = drive(t, m, key("o"))
+	if !m.statusIsErr {
+		t.Fatalf("expected error status, got %q", m.status)
+	}
+}
+
 func TestEscCancelsPicker(t *testing.T) {
 	m := loaded(t, omnifocus.NewDemoClient())
 	initial := len(m.tasks)

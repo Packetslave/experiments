@@ -148,8 +148,8 @@ func (m Model) View() string {
 	b.WriteString("  " + dimStyle.Render(pos) + "\n")
 	b.WriteString(m.statusLine())
 	b.WriteString("\n")
-	b.WriteString("  " + dimStyle.Render("j/k next/prev · g/G first/last · c complete · d drop · f file · l file link · t tag · ! flag") + "\n")
-	b.WriteString("  " + dimStyle.Render("e edit title · s defer · u due · enter subtasks · r refresh · q quit") + "\n")
+	b.WriteString("  " + dimStyle.Render("j/k next/prev · g/G first/last · c complete · d drop · f file · l file link · o open link · t tag") + "\n")
+	b.WriteString("  " + dimStyle.Render("! flag · e edit title · s defer · u due · enter subtasks · r refresh · q quit") + "\n")
 	return b.String()
 }
 
