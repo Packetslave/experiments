@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>mcp on Notes</title><link>https://packetslave.github.io/experiments/blog/tags/mcp/</link><description>Recent content in mcp on Notes</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sun, 16 Aug 2026 20:32:46 +0000</lastBuildDate><atom:link href="https://packetslave.github.io/experiments/blog/tags/mcp/index.xml" rel="self" type="application/rss+xml"/><item><title>Your Claude Desktop connectors are reusable MCP servers</title><link>https://packetslave.github.io/experiments/blog/posts/claude-desktop-connectors-mcp/</link><pubDate>Sun, 16 Aug 2026 20:32:46 +0000</pubDate><guid>https://packetslave.github.io/experiments/blog/posts/claude-desktop-connectors-mcp/</guid><description>&lt;p>Claude Desktop connectors are plain MCP servers on disk. Claude Code can run
+the same server from its own config. You install once, and both clients get
+the integration. I connected Fantastical, my calendar app, to Claude Code
+this way in about 10 minutes.&lt;/p>
+&lt;h2 id="the-false-start">The false start&lt;/h2>
+&lt;p>My first plan was a third-party Fantastical bridge from an MCP directory
+site. The network I was on killed that plan. A captive portal intercepted
+TLS for the directory site, and curl got a certificate for
+&lt;code>secure-login.attwifi.com&lt;/code> instead. GitHub worked. The directory site did
+not.&lt;/p></description></item></channel></rss>
