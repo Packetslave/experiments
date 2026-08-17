@@ -239,7 +239,20 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 10. Ansible bootstrap playbook
+# 10. Sudo password in the keychain for ansible
+# ---------------------------------------------------------------------------
+# The bootstrap playbook reads become_pass from the login keychain:
+#   lookup('pipe', 'security find-generic-password -s ansible-sudo -w')
+step "Keychain entry for ansible (ansible-sudo)"
+if security find-generic-password -s ansible-sudo -w >/dev/null 2>&1; then
+    info "Keychain item already exists."
+else
+    info "Storing your sudo password in the login keychain as 'ansible-sudo'."
+    security add-generic-password -a "$USER" -s ansible-sudo -w
+fi
+
+# ---------------------------------------------------------------------------
+# 11. Ansible bootstrap playbook
 # ---------------------------------------------------------------------------
 step "Ansible bootstrap playbook: $PLAYBOOK"
 cd "$DOTFILES_DIR"
@@ -253,12 +266,12 @@ else
     if [[ -f requirements.yml ]]; then
         ansible-galaxy install -r requirements.yml
     fi
-    # -K prompts for the sudo password for privileged tasks.
-    ansible-playbook -i "localhost," -c local -K "$PLAYBOOK"
+    # become_pass comes from the ansible-sudo keychain item seeded above.
+    ansible-playbook -i "localhost," -c local "$PLAYBOOK"
 fi
 
 # ---------------------------------------------------------------------------
-# 11. 1Password extension for Chrome (optional — Safari covers the bootstrap)
+# 12. 1Password extension for Chrome (optional — Safari covers the bootstrap)
 # ---------------------------------------------------------------------------
 step "1Password extension for Chrome"
 ONEPASSWORD_EXT_ID="aeblfdkhhhdcdjpifhhbdiojplfjncoa"
