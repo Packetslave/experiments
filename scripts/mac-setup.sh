@@ -127,7 +127,13 @@ done
 # 5. GUI apps (casks)
 # ---------------------------------------------------------------------------
 step "Installing casks: 1Password, Chrome, Claude Code"
-for cask in 1password google-chrome claude-code; do
+casks=(1password google-chrome claude-code)
+# Claude tooling is not allowed on Reddit-managed machines.
+if [[ -e /opt/reddit ]]; then
+    info "Reddit machine detected (/opt/reddit) — skipping Claude Code."
+    casks=(1password google-chrome)
+fi
+for cask in "${casks[@]}"; do
     if brew list --cask "$cask" >/dev/null 2>&1; then
         info "$cask already installed."
     else
