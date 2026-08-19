@@ -51,8 +51,9 @@ type Model struct {
 	projects []omnifocus.Project
 	tags     []omnifocus.Tag
 
-	index     int // current task in tasks
-	processed int // items completed/dropped/filed this session
+	index     int  // current task in tasks
+	processed int  // items completed/dropped/filed this session
+	linksOnly bool // when set, navigation and actions see only link items
 
 	picker   picker
 	input    textinput.Model
@@ -181,6 +182,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.index >= len(m.tasks) {
 			m.index = max(0, len(m.tasks)-1)
 		}
+		m.snapToVisible()
 		m.mode = modeBrowse
 		return m, nil
 
@@ -204,6 +206,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				msg.apply(&m.tasks[i])
 			}
 		}
+		m.snapToVisible()
 		m.setStatus(msg.status, false)
 		return m, nil
 
@@ -240,6 +243,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tasks = out
 		m.tasks[i+len(msg.tasks)].ChildCount = len(msg.tasks)
 		m.index = i
+		m.snapToVisible()
 		m.setStatus(fmt.Sprintf("▾ %d subtasks of %s", len(msg.tasks), parentName), false)
 		return m, nil
 
@@ -330,20 +334,33 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.setStatus("", false)
 		return m, tea.Batch(m.spin.Tick, loadCmd(m.client))
 	case "j", "down", "right":
-		if m.index < len(m.tasks)-1 {
-			m.index++
+		if i, ok := m.seekVisible(m.index+1, +1); ok {
+			m.index = i
 		}
 		return m, nil
 	case "k", "up", "left":
-		if m.index > 0 {
-			m.index--
+		if i, ok := m.seekVisible(m.index-1, -1); ok {
+			m.index = i
 		}
 		return m, nil
 	case "g", "home":
-		m.index = 0
+		if i, ok := m.seekVisible(0, +1); ok {
+			m.index = i
+		}
 		return m, nil
 	case "G", "end":
-		m.index = max(0, len(m.tasks)-1)
+		if i, ok := m.seekVisible(len(m.tasks)-1, -1); ok {
+			m.index = i
+		}
+		return m, nil
+	case "L":
+		m.linksOnly = !m.linksOnly
+		if m.linksOnly {
+			m.snapToVisible()
+			m.setStatus(fmt.Sprintf("🔗 links only — %d of %d items", m.visibleCount(), len(m.tasks)), false)
+		} else {
+			m.setStatus("showing all items", false)
+		}
 		return m, nil
 	}
 
@@ -730,7 +747,62 @@ func (m *Model) current() (omnifocus.Task, bool) {
 	if m.index < 0 || m.index >= len(m.tasks) {
 		return omnifocus.Task{}, false
 	}
-	return m.tasks[m.index], true
+	t := m.tasks[m.index]
+	if !m.visible(t) {
+		return omnifocus.Task{}, false
+	}
+	return t, true
+}
+
+// visible reports whether the task passes the active filter.
+func (m *Model) visible(t omnifocus.Task) bool {
+	if !m.linksOnly {
+		return true
+	}
+	_, ok := t.LinkURL()
+	return ok
+}
+
+// seekVisible scans from index `from` in direction `step` (±1) for a task
+// that passes the filter.
+func (m *Model) seekVisible(from, step int) (int, bool) {
+	for i := from; i >= 0 && i < len(m.tasks); i += step {
+		if m.visible(m.tasks[i]) {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+// snapToVisible moves the cursor onto the nearest task passing the filter
+// (preferring forward), so it never rests on a hidden item.
+func (m *Model) snapToVisible() {
+	if i, ok := m.seekVisible(m.index, +1); ok {
+		m.index = i
+	} else if i, ok := m.seekVisible(m.index, -1); ok {
+		m.index = i
+	}
+}
+
+func (m *Model) visibleCount() int {
+	n := 0
+	for _, t := range m.tasks {
+		if m.visible(t) {
+			n++
+		}
+	}
+	return n
+}
+
+// visiblePos is the current task's 1-based position among visible tasks.
+func (m *Model) visiblePos() int {
+	n := 0
+	for i := 0; i <= m.index && i < len(m.tasks); i++ {
+		if m.visible(m.tasks[i]) {
+			n++
+		}
+	}
+	return n
 }
 
 func (m *Model) taskIndex(id string) (int, bool) {

@@ -476,6 +476,99 @@ func TestAddNewTag(t *testing.T) {
 	}
 }
 
+func TestLinksOnlyFilter(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	links := 0
+	for _, task := range m.tasks {
+		if _, ok := task.LinkURL(); ok {
+			links++
+		}
+	}
+	if links == 0 {
+		t.Fatal("demo data has no link items")
+	}
+
+	// Toggling on snaps the cursor to the first link.
+	m = drive(t, m, key("L"))
+	if !m.linksOnly {
+		t.Fatal("L should enable the links-only filter")
+	}
+	if _, ok := m.tasks[m.index].LinkURL(); !ok {
+		t.Fatalf("cursor on non-link at index %d after enabling filter", m.index)
+	}
+
+	// j visits each remaining link, then stops at the last one.
+	visited := []int{m.index}
+	for i := 1; i < links; i++ {
+		m = drive(t, m, key("j"))
+		if _, ok := m.tasks[m.index].LinkURL(); !ok {
+			t.Fatalf("j landed on non-link at index %d", m.index)
+		}
+		visited = append(visited, m.index)
+	}
+	last := m.index
+	m = drive(t, m, key("j"))
+	if m.index != last {
+		t.Fatalf("j past last link moved to %d, want to stay at %d", m.index, last)
+	}
+
+	// g/G jump to the first/last link.
+	m = drive(t, m, key("g"))
+	if m.index != visited[0] {
+		t.Fatalf("g: index = %d, want first link %d", m.index, visited[0])
+	}
+	m = drive(t, m, key("G"))
+	if m.index != last {
+		t.Fatalf("G: index = %d, want last link %d", m.index, last)
+	}
+
+	// Toggling off restores full navigation.
+	m = drive(t, m, key("L"))
+	if m.linksOnly {
+		t.Fatal("second L should disable the filter")
+	}
+	m = drive(t, m, key("g"))
+	if m.index != 0 {
+		t.Fatalf("g with filter off: index = %d, want 0", m.index)
+	}
+}
+
+func TestLinksOnlyProcessingAdvancesToNextLink(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	m = drive(t, m, key("L"))
+	m = drive(t, m, key("g"))
+	initial := m.visibleCount()
+	if initial < 2 {
+		t.Fatalf("need at least 2 demo links, have %d", initial)
+	}
+
+	m = drive(t, m, key("l")) // file the link
+	if m.visibleCount() != initial-1 {
+		t.Fatalf("visible links = %d, want %d", m.visibleCount(), initial-1)
+	}
+	if _, ok := m.tasks[m.index].LinkURL(); !ok {
+		t.Fatalf("cursor on non-link at index %d after filing", m.index)
+	}
+	if m.processed != 1 {
+		t.Fatalf("processed = %d, want 1", m.processed)
+	}
+}
+
+func TestLinksOnlyBlocksActionsOnHiddenTasks(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initial := len(m.tasks)
+	m.linksOnly = true
+	m.index = 0 // force the cursor onto a hidden non-link
+	if _, ok := m.tasks[0].LinkURL(); ok {
+		t.Fatal("expected first demo task to not be a link")
+	}
+
+	m = drive(t, m, key("c"))
+	if len(m.tasks) != initial {
+		t.Fatal("c on a hidden task should be a no-op")
+	}
+}
+
 func TestEscCancelsPicker(t *testing.T) {
 	m := loaded(t, omnifocus.NewDemoClient())
 	initial := len(m.tasks)

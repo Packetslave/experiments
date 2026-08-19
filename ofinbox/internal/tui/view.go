@@ -44,6 +44,9 @@ func (m Model) View() string {
 	b.WriteString("  " + headStyle.Render("OmniFocus Inbox"))
 	if m.mode != modeLoading {
 		b.WriteString(dimStyle.Render(fmt.Sprintf("   %d in inbox · %d processed this session", len(m.tasks), m.processed)))
+		if m.linksOnly {
+			b.WriteString("   " + tagStyle.Render("🔗 links only"))
+		}
 	}
 	b.WriteString("\n\n")
 
@@ -82,6 +85,12 @@ func (m Model) View() string {
 	if len(m.tasks) == 0 {
 		b.WriteString("  " + okStyle.Render("Inbox zero! 🎉") + "\n\n")
 		b.WriteString("  " + dimStyle.Render("r refresh · q quit") + "\n")
+		b.WriteString(m.statusLine())
+		return b.String()
+	}
+	if m.linksOnly && m.visibleCount() == 0 {
+		b.WriteString("  " + okStyle.Render("No links in the inbox 🎉") + "\n\n")
+		b.WriteString("  " + dimStyle.Render("L show all · r refresh · q quit") + "\n")
 		b.WriteString(m.statusLine())
 		return b.String()
 	}
@@ -142,6 +151,9 @@ func (m Model) View() string {
 	b.WriteString("\n\n")
 
 	pos := fmt.Sprintf("item %d of %d", m.index+1, len(m.tasks))
+	if m.linksOnly {
+		pos = fmt.Sprintf("link %d of %d · %d in inbox", m.visiblePos(), m.visibleCount(), len(m.tasks))
+	}
 	if m.busy {
 		pos += "  " + m.spin.View() + "working…"
 	}
@@ -149,7 +161,7 @@ func (m Model) View() string {
 	b.WriteString(m.statusLine())
 	b.WriteString("\n")
 	b.WriteString("  " + dimStyle.Render("j/k next/prev · g/G first/last · c complete · d drop · f file · l file link · o open link · t tag") + "\n")
-	b.WriteString("  " + dimStyle.Render("! flag · e edit title · s defer · u due · enter subtasks · r refresh · q quit") + "\n")
+	b.WriteString("  " + dimStyle.Render("! flag · e edit title · s defer · u due · enter subtasks · L links only · r refresh · q quit") + "\n")
 	return b.String()
 }
 

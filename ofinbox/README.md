@@ -48,6 +48,7 @@ existing project or tag adds a `+ new …` row at the bottom of the list;
 selecting it creates the project (top level, active) or tag (top level)
 and files/tags the item with it in one step.
 | `!` | toggle flag |
+| `L` | toggle links-only filter (see below) |
 | `enter` | open an action group's subtasks in the queue |
 | `e` | edit title |
 | `s` | set defer date |
@@ -70,6 +71,14 @@ URL disqualifies it. `l` files a link in one keystroke: it adds the
 for now and will become preferences later. `o` opens a link in the
 default browser (via `open` on macOS, `xdg-open` elsewhere) without
 touching the item, so you can peek before deciding what to do with it.
+
+`L` toggles a links-only filter for batch-processing captured links:
+navigation (`j`/`k`/`g`/`G`) skips everything that isn't a link, the
+header shows a `🔗 links only` badge, and the position line counts links
+(`link 2 of 5 · 12 in inbox`). The rest of the inbox is untouched —
+non-link items are just hidden until you press `L` again. Processing the
+last link shows "No links in the inbox" rather than dropping you back
+into the full list.
 
 ### Action groups (items with subtasks)
 
