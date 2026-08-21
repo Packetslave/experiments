@@ -111,19 +111,19 @@ In the Tailscale admin console:
 
 Repository **secrets** (Settings → Secrets and variables → Actions):
 
-| Secret | Value |
-|---|---|
-| `TS_OAUTH_CLIENT_ID` | OAuth client ID from step 3 |
-| `TS_OAUTH_SECRET` | OAuth client secret from step 3 |
+| Secret                | Value                                             |
+| --------------------- | ------------------------------------------------- |
+| `TS_OAUTH_CLIENT_ID`  | OAuth client ID from step 3                       |
+| `TS_OAUTH_SECRET`     | OAuth client secret from step 3                   |
 | `BLOG_DEPLOY_SSH_KEY` | Contents of the **private** key `blog_deploy_key` |
 
 Repository **variables**:
 
-| Variable | Value | Example |
-|---|---|---|
-| `SERVER_DEPLOY` | `true` to enable the job | `true` |
-| `BLOG_BASE_URL` | Public URL of the blog on your server | `https://example.com/blog/` |
-| `DEPLOY_SSH_USER` | Deploy user from step 1 | `blogdeploy` |
+| Variable          | Value                                  | Example                        |
+| ----------------- | -------------------------------------- | ------------------------------ |
+| `SERVER_DEPLOY`   | `true` to enable the job               | `true`                         |
+| `BLOG_BASE_URL`   | Public URL of the blog on your server  | `https://example.com/blog/`    |
+| `DEPLOY_SSH_USER` | Deploy user from step 1                | `blogdeploy`                   |
 | `DEPLOY_SSH_HOST` | Server's MagicDNS name or Tailscale IP | `myserver.tailnet-name.ts.net` |
 
 ## 5. Enable and test
