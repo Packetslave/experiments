@@ -24,10 +24,11 @@ data: `ofinbox -demo`.
 ## Build & run
 
 ```bash
-make build          # builds bin/ofinbox
-./bin/ofinbox       # process the real inbox (macOS)
-./bin/ofinbox -demo # sample data, works anywhere
-make test           # unit tests (no OmniFocus needed)
+make build           # builds bin/ofinbox
+./bin/ofinbox        # process the real inbox (macOS)
+./bin/ofinbox -demo  # sample data, works anywhere
+./bin/ofinbox -serve # phone web app + REST API instead of the TUI
+make test            # unit tests (no OmniFocus needed)
 ```
 
 ## Keys
@@ -98,6 +99,47 @@ The defer/due prompts accept quick shorthand: `today`, `tomorrow`, `fri`
 (next Friday), `3d`, `2w`, `2026-08-20`, `2026-08-20 14:30`, or `14:30`
 (today). An empty entry clears the date. Bare dates default to 8:00 for
 defer and 17:00 for due.
+
+## Phone interface (`-serve`)
+
+`ofinbox -serve` runs an HTTP server instead of the TUI: a thin REST API
+over the same client operations, plus an embedded single-file web app
+built for one-handed phone use. It binds `127.0.0.1:4747` by default
+(`-addr` to change); `-demo -serve` serves the sample data on any
+platform, which is also how the frontend is developed and tested.
+
+The app shows the inbox one card at a time — Complete / Drop / File
+large, Tag / Flag / Defer / Due below, ‹ › to skip — with the TUI's
+link handling (one-tap "→ Links to Review" quick-file, Open, links-only
+filter), type-to-filter pickers with `+ new …` creation, and quick-pick
+date chips (Today, Tomorrow, This weekend, Next week, +1 week) backed by
+the native date picker. Action groups act as one unit and ask for a
+confirming second tap on complete/drop. When the queue is done you get
+the processed tally. There is no undo, matching the TUI: both complete
+and drop are recoverable inside OmniFocus.
+
+Intended deployment is an always-on Mac reachable over Tailscale only:
+
+```bash
+ofinbox -serve &
+tailscale serve --bg localhost:4747
+```
+
+giving `https://<host>.<tailnet>.ts.net/` with a real certificate and no
+auth code — the tailnet is the security boundary. On iOS, Share → "Add
+to Home Screen" installs it as a standalone app named "Inbox". Nothing
+host-specific is baked in; moving hosts means building the binary,
+granting the Automation permission once, and repeating the
+`tailscale serve` mapping.
+
+API sketch (all JSON): `GET /api/inbox|projects|tags`;
+`POST /api/tasks/{id}/complete|drop|move|tag|flag|defer|due`;
+`POST /api/projects` and `POST /api/tags` to create. Mutations return
+204; a task that no longer exists is 410 (the app just advances);
+malformed bodies are 400; OmniFocus failures are 502. The server holds a
+mutex across client calls so concurrent requests never interleave
+osascript Apple Events, and every inbox fetch is a fresh read — the
+phone keeps its own queue for the session like the TUI does.
 
 ## Design notes
 

@@ -1,0 +1,11 @@
+{
+  "name": "Inbox",
+  "short_name": "Inbox",
+  "display": "standalone",
+  "start_url": "/",
+  "background_color": "#1a1b26",
+  "theme_color": "#1a1b26",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

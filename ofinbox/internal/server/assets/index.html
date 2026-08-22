@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Inbox</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Inbox">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1b26">
+<style>
+  :root {
+    --bg: #1a1b26; --panel: #24283b; --panel-2: #2f3450; --fg: #c0caf5;
+    --muted: #565f89; --accent: #7aa2f7; --green: #9ece6a; --red: #f7768e;
+    --yellow: #e0af68; --border: #3b4261;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 17px/1.45 -apple-system, "SF Pro Text", system-ui, sans-serif;
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    overscroll-behavior: none;
+  }
+  header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 17px; font-weight: 700; }
+  header .tally { color: var(--muted); font-size: 14px; flex: 1; }
+  header button {
+    background: var(--panel); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 7px 12px; font-size: 14px;
+  }
+  header button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #card {
+    flex: 1; display: flex; flex-direction: column; gap: 12px;
+    padding: 18px 16px; overflow-y: auto;
+  }
+  #card .pos { color: var(--muted); font-size: 13px; }
+  #card .title { font-size: 24px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+  #card .note {
+    color: var(--fg); opacity: .85; white-space: pre-wrap; overflow-wrap: anywhere;
+    background: var(--panel); border-radius: 12px; padding: 12px; font-size: 15px;
+  }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge {
+    font-size: 13px; padding: 3px 9px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--border); color: var(--fg);
+  }
+  .badge.link { color: var(--accent); border-color: var(--accent); }
+  .badge.flag { color: var(--yellow); border-color: var(--yellow); }
+  .badge.group { color: var(--muted); }
+  #linkbar { display: none; gap: 10px; padding: 0 16px 10px; }
+  #linkbar button { flex: 1; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 14px; border: none; }
+  #quickfile { background: var(--accent); color: var(--bg); }
+  #openlink { background: var(--panel-2); color: var(--fg); }
+  #actions { padding: 0 16px calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; gap: 10px; }
+  .row button {
+    flex: 1; border: none; border-radius: 14px; font-weight: 600; color: var(--bg);
+  }
+  .row.primary button { padding: 18px 0; font-size: 17px; }
+  #complete { background: var(--green); }
+  #drop { background: var(--red); }
+  #file { background: var(--accent); }
+  .row.secondary button, .row.nav button {
+    background: var(--panel); color: var(--fg); border: 1px solid var(--border);
+    padding: 12px 0; font-size: 15px;
+  }
+  .row.nav button { padding: 10px 0; color: var(--muted); font-size: 20px; }
+  button.confirm { background: var(--yellow) !important; color: var(--bg) !important; }
+  button:disabled { opacity: .4; }
+  #empty { flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; }
+  #empty .big { font-size: 44px; }
+  #empty h2 { font-size: 22px; }
+  #empty p { color: var(--muted); }
+  #empty button {
+    background: var(--accent); color: var(--bg); border: none; border-radius: 14px;
+    padding: 14px 28px; font-size: 16px; font-weight: 600;
+  }
+  #banner {
+    display: none; margin: 10px 16px 0; padding: 10px 14px; border-radius: 12px;
+    background: var(--red); color: var(--bg); font-size: 14px; font-weight: 600;
+  }
+  .sheet {
+    position: fixed; inset: 0; background: rgba(13, 14, 20, .7);
+    display: none; align-items: flex-end; z-index: 10;
+  }
+  .sheet .inner {
+    background: var(--panel); width: 100%; max-height: 80%;
+    border-radius: 18px 18px 0 0; display: flex; flex-direction: column;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .sheet h3 { font-size: 15px; color: var(--muted); margin-bottom: 10px; }
+  .sheet input[type="search"] {
+    background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px; font-size: 16px; margin-bottom: 10px; width: 100%;
+    -webkit-appearance: none;
+  }
+  .sheet ul { list-style: none; overflow-y: auto; flex: 1; }
+  .sheet li button {
+    width: 100%; text-align: left; background: none; border: none;
+    color: var(--fg); font-size: 17px; padding: 13px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sheet li button .folder { color: var(--muted); font-size: 14px; }
+  .sheet li.new button { color: var(--green); }
+  .sheet .cancel {
+    margin-top: 10px; background: var(--panel-2); color: var(--fg); border: none;
+    border-radius: 12px; padding: 13px; font-size: 16px; width: 100%;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .chips button {
+    background: var(--panel-2); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 999px; padding: 10px 16px; font-size: 15px;
+  }
+  .chips button.clear { color: var(--red); }
+  #datesheet input[type="datetime-local"] {
+    background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px; font-size: 16px; width: 100%; margin-bottom: 10px;
+    -webkit-appearance: none;
+  }
+  #datesheet .set {
+    background: var(--accent); color: var(--bg); border: none; border-radius: 12px;
+    padding: 13px; font-size: 16px; font-weight: 600; width: 100%;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Inbox</h1>
+  <span class="tally" id="tally"></span>
+  <button id="linksonly">🔗</button>
+  <button id="refresh">↻</button>
+</header>
+<div id="banner"></div>
+<main>
+  <div id="card">
+    <div class="pos" id="pos"></div>
+    <div class="title" id="title"></div>
+    <div class="badges" id="badges"></div>
+    <div class="note" id="note"></div>
+  </div>
+  <div id="empty">
+    <div class="big" id="emptyicon">🎉</div>
+    <h2 id="emptytitle">Inbox zero</h2>
+    <p id="emptymsg"></p>
+    <button id="emptyrefresh">Refresh</button>
+  </div>
+  <div id="linkbar">
+    <button id="quickfile">→ Links to Review</button>
+    <button id="openlink">Open</button>
+  </div>
+  <div id="actions">
+    <div class="row primary">
+      <button id="complete">Complete</button>
+      <button id="drop">Drop</button>
+      <button id="file">File</button>
+    </div>
+    <div class="row secondary">
+      <button id="tag">Tag</button>
+      <button id="flag">Flag</button>
+      <button id="defer">Defer</button>
+      <button id="due">Due</button>
+    </div>
+    <div class="row nav">
+      <button id="prev">‹</button>
+      <button id="next">›</button>
+    </div>
+  </div>
+</main>
+
+<div class="sheet" id="picksheet">
+  <div class="inner">
+    <h3 id="picktitle"></h3>
+    <input type="search" id="pickfilter" placeholder="Filter…" autocomplete="off">
+    <ul id="picklist"></ul>
+    <button class="cancel" id="pickcancel">Cancel</button>
+  </div>
+</div>
+
+<div class="sheet" id="datesheet">
+  <div class="inner">
+    <h3 id="datetitle"></h3>
+    <div class="chips" id="datechips"></div>
+    <input type="datetime-local" id="datecustom">
+    <button class="set" id="dateset">Set</button>
+    <button class="cancel" id="datecancel">Cancel</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+// Quick-file targets, hardcoded to match the TUI (preferences later).
+const LINKS_PROJECT = 'Links to Review';
+const LINKS_FOLDER = 'Personal';
+const LINK_TAG = 'NoAction';
+
+const $ = id => document.getElementById(id);
+
+const state = {
+  queue: [],        // unprocessed inbox items, in server order
+  idx: 0,           // position within the visible list
+  processed: 0,
+  linksOnly: false,
+  projects: [],
+  tags: [],
+  confirmArmed: null, // 'complete' | 'drop' when a group action awaits its second tap
+};
+
+function visible() {
+  return state.linksOnly ? state.queue.filter(t => t.linkUrl) : state.queue;
+}
+function current() {
+  return visible()[state.idx];
+}
+
+// --- API ---
+
+async function api(path, opts) {
+  let resp;
+  try {
+    resp = await fetch(path, opts);
+  } catch (e) {
+    throw new Error('server unreachable');
+  }
+  if (resp.status === 410) return { gone: true };
+  if (!resp.ok) {
+    let msg = 'HTTP ' + resp.status;
+    try { msg = (await resp.json()).error || msg; } catch (e) {}
+    throw new Error(msg);
+  }
+  if (resp.status === 204) return {};
+  return resp.json();
+}
+
+const post = (path, body) => api(path, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
+
+// --- rendering ---
+
+function banner(msg) {
+  const b = $('banner');
+  b.textContent = msg;
+  b.style.display = msg ? 'block' : 'none';
+  if (msg) setTimeout(() => { if (b.textContent === msg) b.style.display = 'none'; }, 4000);
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+    ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function render() {
+  const list = visible();
+  if (state.idx >= list.length) state.idx = Math.max(0, list.length - 1);
+  const t = list[state.idx];
+  state.confirmArmed = null;
+
+  $('tally').textContent = state.processed + ' processed';
+  $('linksonly').classList.toggle('active', state.linksOnly);
+
+  const has = !!t;
+  $('card').style.display = has ? 'flex' : 'none';
+  $('actions').style.display = has ? 'flex' : 'none';
+  $('linkbar').style.display = has && t.linkUrl ? 'flex' : 'none';
+  $('empty').style.display = has ? 'none' : 'flex';
+
+  if (!has) {
+    if (state.linksOnly && state.queue.length > 0) {
+      $('emptyicon').textContent = '🔗';
+      $('emptytitle').textContent = 'No links in the inbox';
+      $('emptymsg').textContent = state.queue.length + ' non-link item' +
+        (state.queue.length === 1 ? '' : 's') + ' hidden by the links-only filter.';
+    } else {
+      $('emptyicon').textContent = '🎉';
+      $('emptytitle').textContent = 'Inbox zero';
+      $('emptymsg').textContent = state.processed
+        ? 'You processed ' + state.processed + ' item' + (state.processed === 1 ? '' : 's') + ' this session.'
+        : 'Nothing to process.';
+    }
+    return;
+  }
+
+  $('pos').textContent = state.linksOnly
+    ? 'link ' + (state.idx + 1) + ' of ' + list.length + ' · ' + state.queue.length + ' in inbox'
+    : (state.idx + 1) + ' of ' + list.length;
+  $('title').textContent = t.name || '(no title)';
+  $('note').textContent = t.note;
+  $('note').style.display = t.note ? 'block' : 'none';
+
+  const badges = [];
+  if (t.linkUrl) badges.push(['link', '🔗 link']);
+  if (t.flagged) badges.push(['flag', '🚩 flagged']);
+  if (t.deferDate) badges.push(['', 'defer ' + fmtDate(t.deferDate)]);
+  if (t.dueDate) badges.push(['', 'due ' + fmtDate(t.dueDate)]);
+  for (const tag of t.tags) badges.push(['', '# ' + tag]);
+  if (t.childCount > 0) badges.push(['group', '▸ ' + t.childCount + ' subtask' + (t.childCount === 1 ? '' : 's')]);
+  $('badges').innerHTML = '';
+  for (const [cls, text] of badges) {
+    const span = document.createElement('span');
+    span.className = 'badge' + (cls ? ' ' + cls : '');
+    span.textContent = text;
+    $('badges').appendChild(span);
+  }
+  $('flag').textContent = t.flagged ? 'Unflag' : 'Flag';
+  $('complete').textContent = 'Complete';
+  $('complete').classList.remove('confirm');
+  $('drop').textContent = 'Drop';
+  $('drop').classList.remove('confirm');
+}
+
+// --- queue operations ---
+
+function removeCurrent(countIt) {
+  const t = current();
+  if (!t) return;
+  state.queue = state.queue.filter(x => x.id !== t.id);
+  if (countIt) state.processed++;
+  render();
+}
+
+async function mutateCurrent(fn, { removes = false } = {}) {
+  const t = current();
+  if (!t) return;
+  try {
+    const res = await fn(t);
+    if (res && res.gone) {
+      banner('Already processed elsewhere');
+      removeCurrent(false);
+      return;
+    }
+    if (removes) removeCurrent(true);
+    else render();
+  } catch (e) {
+    banner(e.message);
+  }
+}
+
+// Complete and drop cascade over a whole action group, so a group needs a
+// second tap to confirm (mirrors the TUI).
+function confirmable(kind, fn) {
+  return () => {
+    const t = current();
+    if (!t) return;
+    if (t.childCount > 0 && state.confirmArmed !== kind) {
+      state.confirmArmed = kind;
+      const b = $(kind);
+      b.textContent = 'Confirm?';
+      b.classList.add('confirm');
+      return;
+    }
+    state.confirmArmed = null;
+    fn();
+  };
+}
+
+async function load() {
+  try {
+    const [queue, projects, tags] = await Promise.all([
+      api('/api/inbox'), api('/api/projects'), api('/api/tags'),
+    ]);
+    state.queue = queue;
+    state.projects = projects;
+    state.tags = tags;
+    state.idx = 0;
+    render();
+    banner('');
+  } catch (e) {
+    banner(e.message);
+  }
+}
+
+// --- pickers ---
+
+function openPicker({ title, items, itemLabel, allowNew, onPick, onCreate }) {
+  const sheet = $('picksheet');
+  const input = $('pickfilter');
+  const ul = $('picklist');
+  $('picktitle').textContent = title;
+  input.value = '';
+
+  function close() { sheet.style.display = 'none'; }
+
+  function renderList() {
+    const q = input.value.trim().toLowerCase();
+    ul.innerHTML = '';
+    const shown = items.filter(it => it.name.toLowerCase().includes(q));
+    for (const it of shown) {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.innerHTML = itemLabel(it);
+      b.onclick = () => { close(); onPick(it); };
+      li.appendChild(b);
+      ul.appendChild(li);
+    }
+    const exact = items.some(it => it.name.toLowerCase() === q);
+    if (allowNew && q && !exact) {
+      const li = document.createElement('li');
+      li.className = 'new';
+      const b = document.createElement('button');
+      b.textContent = '+ new “' + input.value.trim() + '”';
+      b.onclick = () => { close(); onCreate(input.value.trim()); };
+      li.appendChild(b);
+      ul.appendChild(li);
+    }
+  }
+
+  input.oninput = renderList;
+  $('pickcancel').onclick = close;
+  sheet.onclick = e => { if (e.target === sheet) close(); };
+  renderList();
+  sheet.style.display = 'flex';
+  input.focus();
+}
+
+const escapeHTML = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function pickProject(onPick) {
+  openPicker({
+    title: 'File to project',
+    items: state.projects,
+    itemLabel: p => escapeHTML(p.name) +
+      (p.folder ? ' <span class="folder">' + escapeHTML(p.folder) + '</span>' : ''),
+    allowNew: true,
+    onPick,
+    onCreate: async name => {
+      try {
+        const p = await post('/api/projects', { name });
+        state.projects.push(p);
+        onPick(p);
+      } catch (e) { banner(e.message); }
+    },
+  });
+}
+
+function pickTag(onPick) {
+  openPicker({
+    title: 'Add tag',
+    items: state.tags,
+    itemLabel: g => escapeHTML(g.name),
+    allowNew: true,
+    onPick,
+    onCreate: async name => {
+      try {
+        const g = await post('/api/tags', { name });
+        state.tags.push(g);
+        onPick(g);
+      } catch (e) { banner(e.message); }
+    },
+  });
+}
+
+// --- dates ---
+
+function chipDates(kind) {
+  // Bare dates default to 8:00 for defer and 17:00 for due, like the TUI.
+  const hour = kind === 'defer' ? 8 : 17;
+  const at = (d, h) => { const x = new Date(d); x.setHours(h, 0, 0, 0); return x; };
+  const today = new Date();
+  const add = days => { const x = new Date(today); x.setDate(x.getDate() + days); return x; };
+  const nextDow = dow => {
+    const x = new Date(today);
+    do { x.setDate(x.getDate() + 1); } while (x.getDay() !== dow);
+    return x;
+  };
+  return [
+    ['Today', at(today, hour)],
+    ['Tomorrow', at(add(1), hour)],
+    ['This weekend', at(nextDow(6), hour)],
+    ['Next week', at(nextDow(1), hour)],
+    ['+1 week', at(add(7), hour)],
+  ];
+}
+
+function openDateSheet(kind) {
+  const t = current();
+  if (!t) return;
+  const sheet = $('datesheet');
+  $('datetitle').textContent = (kind === 'defer' ? 'Defer until' : 'Due') + ' — ' + (t.name || 'item');
+  const chips = $('datechips');
+  chips.innerHTML = '';
+
+  function close() { sheet.style.display = 'none'; }
+  const send = date => {
+    close();
+    mutateCurrent(async task => {
+      const res = await post('/api/tasks/' + encodeURIComponent(task.id) + '/' + kind,
+        { date: date ? date.toISOString() : null });
+      if (res.gone) return res;
+      const field = kind === 'defer' ? 'deferDate' : 'dueDate';
+      task[field] = date ? date.toISOString() : null;
+      return res;
+    });
+  };
+
+  for (const [label, date] of chipDates(kind)) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.onclick = () => send(date);
+    chips.appendChild(b);
+  }
+  const existing = kind === 'defer' ? t.deferDate : t.dueDate;
+  if (existing) {
+    const b = document.createElement('button');
+    b.className = 'clear';
+    b.textContent = 'Clear';
+    b.onclick = () => send(null);
+    chips.appendChild(b);
+  }
+
+  // Prefill the fallback picker at the default hour so a user who only
+  // changes the date keeps the bare-date default (8:00 defer, 17:00 due).
+  const seed = chipDates(kind)[0][1];
+  const pad = n => String(n).padStart(2, '0');
+  $('datecustom').value = seed.getFullYear() + '-' + pad(seed.getMonth() + 1) + '-' +
+    pad(seed.getDate()) + 'T' + pad(seed.getHours()) + ':' + pad(seed.getMinutes());
+  $('dateset').onclick = () => {
+    const v = $('datecustom').value;
+    if (!v) return;
+    send(new Date(v));
+  };
+  $('datecancel').onclick = close;
+  sheet.onclick = e => { if (e.target === sheet) close(); };
+  sheet.style.display = 'flex';
+}
+
+// --- quick-file ---
+
+function linksProject() {
+  const matches = state.projects.filter(p => p.name === LINKS_PROJECT);
+  return matches.find(p => p.folder === LINKS_FOLDER) || matches[0];
+}
+const linkTag = () => state.tags.find(g => g.name === LINK_TAG);
+
+async function quickFile() {
+  const proj = linksProject();
+  const tag = linkTag();
+  if (!proj) { banner('project “' + LINKS_PROJECT + '” not found'); return; }
+  if (!tag) { banner('tag “' + LINK_TAG + '” not found'); return; }
+  await mutateCurrent(async t => {
+    const path = '/api/tasks/' + encodeURIComponent(t.id);
+    const tagged = await post(path + '/tag', { tagId: tag.id });
+    if (tagged.gone) return tagged;
+    return post(path + '/move', { projectId: proj.id });
+  }, { removes: true });
+}
+
+// --- wiring ---
+
+const taskPath = (t, action) => '/api/tasks/' + encodeURIComponent(t.id) + '/' + action;
+
+$('complete').onclick = confirmable('complete',
+  () => mutateCurrent(t => post(taskPath(t, 'complete')), { removes: true }));
+$('drop').onclick = confirmable('drop',
+  () => mutateCurrent(t => post(taskPath(t, 'drop')), { removes: true }));
+$('file').onclick = () => {
+  if (!current()) return;
+  pickProject(p => mutateCurrent(t => post(taskPath(t, 'move'), { projectId: p.id }), { removes: true }));
+};
+$('tag').onclick = () => {
+  if (!current()) return;
+  pickTag(g => mutateCurrent(async t => {
+    const res = await post(taskPath(t, 'tag'), { tagId: g.id });
+    if (!res.gone && !t.tags.includes(g.name)) t.tags.push(g.name);
+    return res;
+  }));
+};
+$('flag').onclick = () => mutateCurrent(async t => {
+  const res = await post(taskPath(t, 'flag'), { flagged: !t.flagged });
+  if (!res.gone) t.flagged = !t.flagged;
+  return res;
+});
+$('defer').onclick = () => openDateSheet('defer');
+$('due').onclick = () => openDateSheet('due');
+$('quickfile').onclick = quickFile;
+$('openlink').onclick = () => { const t = current(); if (t && t.linkUrl) window.open(t.linkUrl, '_blank'); };
+$('prev').onclick = () => { if (state.idx > 0) { state.idx--; render(); } };
+$('next').onclick = () => { if (state.idx < visible().length - 1) { state.idx++; render(); } };
+$('linksonly').onclick = () => { state.linksOnly = !state.linksOnly; state.idx = 0; render(); };
+$('refresh').onclick = load;
+$('emptyrefresh').onclick = load;
+
+load();
+</script>
+</body>
+</html>
