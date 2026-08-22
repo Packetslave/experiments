@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/packetslave/experiments/ofinbox/internal/omnifocus"
+	"github.com/packetslave/experiments/ofinbox/internal/suggest"
 )
 
 type mode int
@@ -51,6 +52,10 @@ type Model struct {
 	projects []omnifocus.Project
 	tags     []omnifocus.Tag
 
+	// rec suggests projects/tags in the f/t pickers. nil until the filing
+	// history loads (a separate async fetch); pickers degrade to plain lists.
+	rec suggest.Recommender
+
 	index     int  // current task in tasks
 	processed int  // items completed/dropped/filed this session
 	linksOnly bool // when set, navigation and actions see only link items
@@ -78,8 +83,11 @@ func New(client omnifocus.Client) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.spin.Tick, loadCmd(m.client))
+	return tea.Batch(m.spin.Tick, loadCmd(m.client), historyCmd(m.client))
 }
+
+// maxSuggestions caps the pinned rows at the top of the f/t pickers.
+const maxSuggestions = 3
 
 // --- messages ---
 
@@ -103,6 +111,25 @@ type actionDoneMsg struct {
 	// it up without a full reload.
 	newProject *omnifocus.Project
 	newTag     *omnifocus.Tag
+
+	// set when the action was a filing decision worth teaching the
+	// recommender mid-session.
+	learn *omnifocus.HistoryEntry
+}
+
+// historyMsg carries the filing history fetched for suggestion scoring.
+type historyMsg struct {
+	entries []omnifocus.HistoryEntry
+	err     error
+}
+
+func historyCmd(client omnifocus.Client) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
+		defer cancel()
+		entries, err := client.History(ctx)
+		return historyMsg{entries: entries, err: err}
+	}
 }
 
 func loadCmd(client omnifocus.Client) tea.Cmd {
@@ -186,11 +213,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = modeBrowse
 		return m, nil
 
+	case historyMsg:
+		if msg.err != nil {
+			m.setStatus("no suggestions (history fetch failed: "+msg.err.Error()+")", false)
+			return m, nil
+		}
+		m.rec = suggest.NewLexical(msg.entries)
+		return m, nil
+
 	case actionDoneMsg:
 		m.busy = false
 		if msg.err != nil {
 			m.setStatus("✗ "+msg.err.Error(), true)
 			return m, nil
+		}
+		if msg.learn != nil && m.rec != nil {
+			m.rec.Learn(*msg.learn)
 		}
 		if msg.newProject != nil {
 			m.projects = append(m.projects, *msg.newProject)
@@ -332,7 +370,7 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "r":
 		m.mode = modeLoading
 		m.setStatus("", false)
-		return m, tea.Batch(m.spin.Tick, loadCmd(m.client))
+		return m, tea.Batch(m.spin.Tick, loadCmd(m.client), historyCmd(m.client))
 	case "j", "down", "right":
 		if i, ok := m.seekVisible(m.index+1, +1); ok {
 			m.index = i
@@ -475,6 +513,13 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.picker = newPicker("File \""+displayName(task.Name)+"\" to project:", "type to filter projects", items)
 		m.picker.createKind = "project"
+		if m.rec != nil {
+			cands := make([]suggest.Candidate, 0, len(m.projects))
+			for _, p := range m.projects {
+				cands = append(cands, suggest.Candidate{ID: p.ID, Name: p.Name})
+			}
+			m.picker.pin(m.rec.Projects(task.Name+" "+task.Note, cands, maxSuggestions))
+		}
 		m.mode = modePickProject
 		return m, textinput.Blink
 
@@ -485,6 +530,13 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.picker = newPicker("Add tag to \""+displayName(task.Name)+"\":", "type to filter tags", items)
 		m.picker.createKind = "tag"
+		if m.rec != nil {
+			cands := make([]suggest.Candidate, 0, len(m.tags))
+			for _, g := range m.tags {
+				cands = append(cands, suggest.Candidate{ID: g.ID, Name: g.Name})
+			}
+			m.picker.pin(m.rec.Tags(task.Name+" "+task.Note, cands, maxSuggestions))
+		}
 		m.mode = modePickTag
 		return m, textinput.Blink
 
@@ -531,6 +583,7 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 	case wasProjectPick && it.id == createPickID:
 		name := it.label
 		taskName := displayName(task.Name)
+		fullName := task.Name
 		client := m.client
 		return m, tea.Batch(m.spin.Tick, func() tea.Msg {
 			ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
@@ -543,12 +596,14 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 				return actionDoneMsg{taskID: id, err: err}
 			}
 			return actionDoneMsg{taskID: id, remove: true, newProject: &proj,
+				learn:  &omnifocus.HistoryEntry{Name: fullName, ProjectID: proj.ID},
 				status: "→ filed to new project " + proj.Name + ": " + taskName}
 		})
 
 	case !wasProjectPick && it.id == createPickID:
 		name := it.label
 		taskName := displayName(task.Name)
+		fullName := task.Name
 		client := m.client
 		return m, tea.Batch(m.spin.Tick, func() tea.Msg {
 			ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
@@ -562,6 +617,7 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 			}
 			tagName := tag.Name
 			return actionDoneMsg{taskID: id, newTag: &tag,
+				learn: &omnifocus.HistoryEntry{Name: fullName, TagIDs: []string{tag.ID}},
 				status: "# tagged " + tagName + " (new): " + taskName,
 				apply: func(t *omnifocus.Task) {
 					for _, existing := range t.Tags {
@@ -577,13 +633,15 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 		pickID := it.id
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return m.client.MoveToProject(ctx, id, pickID) },
-			actionDoneMsg{status: "→ filed to " + it.label + ": " + displayName(task.Name), remove: true}))
+			actionDoneMsg{status: "→ filed to " + it.label + ": " + displayName(task.Name), remove: true,
+				learn: &omnifocus.HistoryEntry{Name: task.Name, ProjectID: pickID}}))
 	default: // Add tag
 		pickID := it.id
 		tagName := it.label
 		return m, tea.Batch(m.spin.Tick, actionCmd(id,
 			func(ctx context.Context) error { return m.client.AddTag(ctx, id, pickID) },
 			actionDoneMsg{status: "# tagged " + tagName + ": " + displayName(task.Name),
+				learn: &omnifocus.HistoryEntry{Name: task.Name, TagIDs: []string{pickID}},
 				apply: func(t *omnifocus.Task) {
 					for _, existing := range t.Tags {
 						if existing == tagName {

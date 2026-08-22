@@ -48,6 +48,17 @@ In the `f` and `t` pickers, typing a name that doesn't exactly match an
 existing project or tag adds a `+ new …` row at the bottom of the list;
 selecting it creates the project (top level, active) or tag (top level)
 and files/tags the item with it in one step.
+
+While the filter is empty, up to three suggested projects/tags are pinned
+(starred) at the top of the picker, best first, with the cursor on the top
+pick — so accepting a suggestion is just `f` `enter`. Typing anything
+dismisses them and filters the plain list as usual. Suggestions are scored
+lexically (IDF-weighted token overlap, `internal/suggest`) against your
+filing history — every task already in a project (remaining or completed,
+fetched once at startup by `scripts/history.js`) — plus the project/tag
+names themselves. Filing or tagging during the session teaches the
+recommender immediately, so similar captures batch nicely. If the history
+fetch fails, the pickers quietly stay plain lists.
 | `!` | toggle flag |
 | `L` | toggle links-only filter (see below) |
 | `enter` | open an action group's subtasks in the queue |

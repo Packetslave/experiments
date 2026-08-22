@@ -17,6 +17,7 @@ type DemoClient struct {
 	tasks    []Task
 	projects []Project
 	tags     []Tag
+	history  []HistoryEntry
 }
 
 func NewDemoClient() *DemoClient {
@@ -55,6 +56,19 @@ func NewDemoClient() *DemoClient {
 			{ID: "g4", Name: "waiting"},
 			{ID: "g5", Name: "phone"},
 			{ID: "g6", Name: "NoAction"},
+		},
+		history: []HistoryEntry{
+			{Name: "Schedule annual physical", ProjectID: "p2", TagIDs: []string{"g5"}},
+			{Name: "Dentist cleaning", ProjectID: "p2", TagIDs: []string{"g5"}},
+			{Name: "Refill allergy prescription", ProjectID: "p2", TagIDs: []string{"g1"}},
+			{Name: "Replace furnace filter", ProjectID: "p1", TagIDs: []string{"g1"}},
+			{Name: "Clean the gutters", ProjectID: "p1"},
+			{Name: "Fix CI pipeline timeout", ProjectID: "p4", TagIDs: []string{"g3"}},
+			{Name: "Upgrade Go toolchain on experiments repo", ProjectID: "p4"},
+			{Name: "Renew Global Entry", ProjectID: "p3", TagIDs: []string{"g5"}},
+			{Name: "Get passport photos taken", ProjectID: "p3", TagIDs: []string{"g1"}},
+			{Name: "Read \"Designing Data-Intensive Applications\"", ProjectID: "p5", TagIDs: []string{"g3"}},
+			{Name: "Reply to landlord about lease renewal", ProjectID: "p1", TagIDs: []string{"g2"}},
 		},
 	}
 }
@@ -112,6 +126,14 @@ func (c *DemoClient) Tags(ctx context.Context) ([]Tag, error) {
 	defer c.mu.Unlock()
 	out := make([]Tag, len(c.tags))
 	copy(out, c.tags)
+	return out, nil
+}
+
+func (c *DemoClient) History(ctx context.Context) ([]HistoryEntry, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := make([]HistoryEntry, len(c.history))
+	copy(out, c.history)
 	return out, nil
 }
 

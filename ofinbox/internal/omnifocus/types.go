@@ -59,6 +59,14 @@ type Tag struct {
 	Name string
 }
 
+// HistoryEntry is one past filing decision: a task already living in a
+// project (remaining or completed, not dropped), used to score suggestions.
+type HistoryEntry struct {
+	Name      string
+	ProjectID string
+	TagIDs    []string
+}
+
 // Client is the operation set the TUI needs. All mutations act on task IDs so
 // the UI never holds live references to OmniFocus objects.
 type Client interface {
@@ -67,6 +75,8 @@ type Client interface {
 	Children(ctx context.Context, taskID string) ([]Task, error)
 	Projects(ctx context.Context) ([]Project, error)
 	Tags(ctx context.Context) ([]Tag, error)
+	// History returns past filing decisions for suggestion scoring.
+	History(ctx context.Context) ([]HistoryEntry, error)
 
 	// CreateProject / CreateTag create a new top-level project (active) or tag
 	// and return it with its assigned ID.

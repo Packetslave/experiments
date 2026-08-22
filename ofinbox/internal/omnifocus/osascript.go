@@ -145,6 +145,27 @@ func (c *OsascriptClient) Tags(ctx context.Context) ([]Tag, error) {
 	return tags, nil
 }
 
+func (c *OsascriptClient) History(ctx context.Context) ([]HistoryEntry, error) {
+	out, err := c.run(ctx, "history.js")
+	if err != nil {
+		return nil, err
+	}
+	type histJSON struct {
+		Name      string   `json:"name"`
+		ProjectID string   `json:"projectID"`
+		Tags      []string `json:"tags"`
+	}
+	var raw []histJSON
+	if err := json.Unmarshal([]byte(out), &raw); err != nil {
+		return nil, fmt.Errorf("parsing history JSON: %w", err)
+	}
+	entries := make([]HistoryEntry, 0, len(raw))
+	for _, r := range raw {
+		entries = append(entries, HistoryEntry{Name: r.Name, ProjectID: r.ProjectID, TagIDs: r.Tags})
+	}
+	return entries, nil
+}
+
 func (c *OsascriptClient) create(ctx context.Context, kind, name string) (string, string, error) {
 	out, err := c.run(ctx, "create.js", kind, name)
 	if err != nil {

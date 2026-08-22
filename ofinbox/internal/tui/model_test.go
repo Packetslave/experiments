@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/packetslave/experiments/ofinbox/internal/omnifocus"
+	"github.com/packetslave/experiments/ofinbox/internal/suggest"
 )
 
 // drive runs a msg through Update and synchronously executes any returned
@@ -579,5 +580,109 @@ func TestEscCancelsPicker(t *testing.T) {
 	}
 	if len(m.tasks) != initial {
 		t.Fatal("esc should not change tasks")
+	}
+}
+
+// loadedWithHistory is loaded plus the async filing-history fetch applied,
+// so pickers show suggestions.
+func loadedWithHistory(t *testing.T, client omnifocus.Client) Model {
+	t.Helper()
+	m := loaded(t, client)
+	msg := historyCmd(client)()
+	hm, ok := msg.(historyMsg)
+	if !ok || hm.err != nil {
+		t.Fatalf("historyCmd: %#v", msg)
+	}
+	next, _ := m.Update(hm)
+	return next.(Model)
+}
+
+func TestSuggestionsPinnedInProjectPicker(t *testing.T) {
+	m := loadedWithHistory(t, omnifocus.NewDemoClient())
+	// Demo task t1 "Book dentist appointment"; history files dentist work
+	// to p2 "Health".
+	m = drive(t, m, key("f"))
+	if m.picker.pinnedShown == 0 {
+		t.Fatal("no pinned suggestions in project picker")
+	}
+	it, ok := m.picker.selected()
+	if !ok || it.id != "p2" {
+		t.Fatalf("top suggestion = %+v, want p2 (Health)", it)
+	}
+	if !strings.Contains(m.picker.view(), "★") {
+		t.Fatal("picker view has no ★ marker")
+	}
+	// Accepting the top suggestion is just f + enter.
+	initial := len(m.tasks)
+	m = drive(t, m, key("enter"))
+	if len(m.tasks) != initial-1 || !strings.Contains(m.status, "Health") {
+		t.Fatalf("after accepting suggestion: %d tasks (want %d), status %q", len(m.tasks), initial-1, m.status)
+	}
+}
+
+func TestTypingDismissesSuggestions(t *testing.T) {
+	m := loadedWithHistory(t, omnifocus.NewDemoClient())
+	m = drive(t, m, key("f"))
+	if m.picker.pinnedShown == 0 {
+		t.Fatal("no pinned suggestions to dismiss")
+	}
+	m = drive(t, m, key("read"))
+	if m.picker.pinnedShown != 0 {
+		t.Fatalf("pinnedShown = %d after typing, want 0", m.picker.pinnedShown)
+	}
+	it, ok := m.picker.selected()
+	if !ok || it.id != "p5" {
+		t.Fatalf("selected = %+v, want p5 (Reading list)", it)
+	}
+	// Clearing the filter brings the suggestions back.
+	m = drive(t, m, tea.KeyMsg{Type: tea.KeyBackspace})
+	m = drive(t, m, tea.KeyMsg{Type: tea.KeyBackspace})
+	m = drive(t, m, tea.KeyMsg{Type: tea.KeyBackspace})
+	m = drive(t, m, tea.KeyMsg{Type: tea.KeyBackspace})
+	if m.picker.pinnedShown == 0 {
+		t.Fatal("suggestions did not return on empty filter")
+	}
+}
+
+func TestSuggestionsInTagPicker(t *testing.T) {
+	m := loadedWithHistory(t, omnifocus.NewDemoClient())
+	// Dentist history entries carry tag g5 "phone".
+	m = drive(t, m, key("t"))
+	if m.picker.pinnedShown == 0 {
+		t.Fatal("no pinned suggestions in tag picker")
+	}
+	it, ok := m.picker.selected()
+	if !ok || it.id != "g5" {
+		t.Fatalf("top tag suggestion = %+v, want g5 (phone)", it)
+	}
+}
+
+func TestNoHistoryMeansPlainPicker(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient()) // history never fetched
+	m = drive(t, m, key("f"))
+	if m.picker.pinnedShown != 0 {
+		t.Fatalf("pinnedShown = %d without history, want 0", m.picker.pinnedShown)
+	}
+}
+
+func TestFilingTeachesRecommender(t *testing.T) {
+	m := loadedWithHistory(t, omnifocus.NewDemoClient())
+	// File "Reply to Sam about the offsite" (t2) to Travel prep by search.
+	for i, task := range m.tasks {
+		if task.ID == "t2" {
+			m.index = i
+		}
+	}
+	m = drive(t, m, key("f"))
+	m = drive(t, m, key("travel"))
+	m = drive(t, m, key("enter"))
+	if !strings.Contains(m.status, "Travel prep") {
+		t.Fatalf("status = %q, want filed to Travel prep", m.status)
+	}
+	// A later similar capture now suggests Travel prep from the session's
+	// own filing decision ("offsite" appears nowhere in the demo history).
+	got := m.rec.Projects("plan next offsite", []suggest.Candidate{{ID: "p3", Name: "Travel prep"}}, 3)
+	if len(got) == 0 || got[0] != "p3" {
+		t.Fatalf("recommender after filing = %v, want p3 first", got)
 	}
 }

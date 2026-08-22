@@ -30,6 +30,9 @@ type picker struct {
 	maxVisible int
 	createKind string // "project"/"tag" enables the create row; "" disables
 	createName string // trimmed filter text the create row would use
+
+	pinned      []int // suggested items (indexes into items), best first
+	pinnedShown int   // pinned rows currently at the head of filtered
 }
 
 func newPicker(title, placeholder string, items []pickItem) picker {
@@ -42,14 +45,38 @@ func newPicker(title, placeholder string, items []pickItem) picker {
 	return p
 }
 
+// pin marks the items with the given ids as suggestions: while the filter is
+// empty they appear first (starred, in the given order) and the rest of the
+// list follows; typing any filter text reverts to plain filtering.
+func (p *picker) pin(ids []string) {
+	p.pinned = p.pinned[:0]
+	for _, id := range ids {
+		for i, it := range p.items {
+			if it.id == id {
+				p.pinned = append(p.pinned, i)
+				break
+			}
+		}
+	}
+	p.refilter()
+}
+
 func (p *picker) refilter() {
 	p.createName = strings.TrimSpace(p.input.Value())
 	q := strings.ToLower(p.createName)
 	p.filtered = p.filtered[:0]
+	p.pinnedShown = 0
+	if q == "" {
+		p.filtered = append(p.filtered, p.pinned...)
+		p.pinnedShown = len(p.pinned)
+	}
 	exact := false
 	for i, it := range p.items {
 		if strings.ToLower(it.label) == q {
 			exact = true
+		}
+		if q == "" && p.isPinned(i) {
+			continue // already at the head
 		}
 		if q == "" ||
 			strings.Contains(strings.ToLower(it.label), q) ||
@@ -66,6 +93,15 @@ func (p *picker) refilter() {
 	if p.cursor < 0 {
 		p.cursor = 0
 	}
+}
+
+func (p *picker) isPinned(i int) bool {
+	for _, pi := range p.pinned {
+		if pi == i {
+			return true
+		}
+	}
+	return false
 }
 
 // update handles navigation keys itself and feeds everything else to the
@@ -125,12 +161,16 @@ func (p *picker) view() string {
 			} else {
 				it = p.items[p.filtered[fi]]
 			}
-			line := it.label
+			star := ""
+			if fi < p.pinnedShown {
+				star = flagStyle.Render("★ ")
+			}
+			line := star + it.label
 			if it.desc != "" {
 				line += dimStyle.Render("  ·  "+it.desc)
 			}
 			if fi == p.cursor {
-				b.WriteString(pickerCursorStyle.Render("▸ ") + selectedStyle.Render(it.label))
+				b.WriteString(pickerCursorStyle.Render("▸ ") + star + selectedStyle.Render(it.label))
 				if it.desc != "" {
 					b.WriteString(dimStyle.Render("  ·  " + it.desc))
 				}

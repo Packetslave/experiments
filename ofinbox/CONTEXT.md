@@ -38,5 +38,15 @@ _Avoid_: parent task, project (a group is not yet a project)
 **Picker**:
 A type-to-filter chooser for projects or tags. Typing a name with no exact match offers a `+ new …` row that creates the destination and applies it in one step.
 
+**Suggestion**:
+A project or tag the app recommends for the current item, shown as pinned rows at the top of the picker while the filter is empty. Typing any filter text dismisses suggestions and reverts to plain filtering. A suggestion is advisory: selecting one is the same as selecting that project/tag by search.
+_Avoid_: prediction, guess
+
+**Filing history**:
+The corpus of past filing decisions used to score suggestions: tasks already living in projects (remaining and completed), with their names and tag assignments. Dropped tasks are not history.
+
+**Recommender**:
+The component that ranks projects/tags for an item from its text. The v1 recommender is lexical (token overlap against filing history and project/tag names); the interface exists so a model-backed recommender can replace it without touching the pickers.
+
 **Processed tally**:
 The count of items processed this session, shown in the header and as the payoff on the inbox-zero screen. Skipping an item does not count.
