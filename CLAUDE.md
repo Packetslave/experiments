@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository purpose
 
-A playground for distributed systems algorithm experiments and browser-based utilities. Contains a Go gRPC module (`grpc/`), a collection of static web tools (`docs/`) published to GitHub Pages, and a Hugo blog (`blog/`) deployed to the same Pages site. Additional experiments may be added as sibling directories at the repo root.
+A playground for distributed systems algorithm experiments and browser-based utilities. Contains a Go gRPC module (`grpc/`), a collection of static web tools (`docs/`) published to GitHub Pages, a Hugo blog (`blog/`) deployed to the same Pages site, and static sites (`sites/`) published to seaside. Additional experiments may be added as sibling directories at the repo root.
+
+**`blog/` and `sites/` are production web content, not experiments.** They live here because this repo already holds the Tailscale OAuth secrets and a working deploy job, which made the first parked site cheap to add — a setup-cost argument, not an architectural one. Moving both into their own repo is tracked as cowork-7xa.
 
 ## grpc/ module
 
@@ -114,6 +116,37 @@ docs/
 1. Create `docs/<tool-name>.html` following the shared theme and conventions above.
 2. Add a card for it in `docs/index.html` (`.grid > .card`) — every tool must have a card, so the index stays a complete inventory.
 3. Land both on `main` (directly or via a branch and merge). The "Deploy site" workflow publishes them; no manual `gh-pages` step.
+
+## sites/ — static sites on seaside
+
+Parked and small static domains, one directory per domain, published to **seaside**
+(the public DigitalOcean droplet). See `sites/README.md` for the full convention.
+
+```
+sites/<domain>/
+  public/         # exactly what the webserver serves — the ONLY thing that ships
+  source/         # inputs the public/ assets are derived from
+  make-assets.py  # optional; regenerates public/ from source/
+```
+
+**Deployment:** `.github/workflows/parked.yml` assembles a staging tree of every site's
+`public/` and rsyncs it to seaside over Tailscale, as `parkeddeploy`. That account's key
+carries a forced `rrsync -wo` command jailed to `/var/www/parked`, so it can write parked
+domains and nothing else — not the blog's document root, not packetslave.com. Gated on the
+`PARKED_DEPLOY` repository variable. **Never deploy by hand.**
+
+Deliberately a separate workflow from `site.yml`: a parking-page edit has no business
+rebuilding the Hugo blog, or the reverse. It does share `DEPLOY_SSH_HOST` with the blog's
+`deploy-server` job, so changing that variable affects both.
+
+`rsync --delete` runs against the whole jail — **removing a directory here unpublishes
+that domain** on the next deploy.
+
+The server side (document root, deploy user, jailed `authorized_keys`, vhost, TLS) is
+owned by ansible in the private homelab repo (`ansible/webserver.yaml`), which never
+writes page content. Adding a domain needs a `sites:` entry there with
+`root: /var/www/parked/<domain>` and two playbook passes. Background:
+`Decisions/decision-site-publishing-2026-08-25.md` in the cowork repo.
 
 ## blog/ — Hugo blog
 
