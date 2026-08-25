@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bonelesspanda.com</title>
+<meta name="description" content="bonelesspanda.com — nothing here yet.">
+<meta name="theme-color" content="#f4f1ea">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<style>
+  :root {
+    --paper: #f4f1ea;
+    --paper-deep: #e8e3d8;
+    --ink: #3a3733;
+    --muted: #9c9487;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5rem;
+    padding: 6vh 1.5rem;
+    background: radial-gradient(ellipse at 50% 42%, var(--paper) 0%, var(--paper-deep) 100%);
+    color: var(--ink);
+    font-family: ui-rounded, "SF Pro Rounded", "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Tarepanda means "droopy panda", so it drifts rather than sits. */
+  .panda {
+    width: min(620px, 82vw);
+    height: auto;
+    animation: drift 7s ease-in-out infinite;
+  }
+
+  @keyframes drift {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+  }
+
+  .wordmark {
+    margin: 0;
+    font-size: clamp(0.72rem, 2.2vw, 0.86rem);
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    /* letter-spacing adds a trailing gap; pull it back so the text sits centred. */
+    text-indent: 0.3em;
+    color: var(--muted);
+  }
+
+  .credit {
+    position: fixed;
+    bottom: 1.25rem;
+    margin: 0;
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    opacity: 0.55;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panda { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <img class="panda" src="tarepanda.png" width="929" height="459"
+       alt="Two droopy pandas flopped on top of each other">
+  <p class="wordmark">bonelesspanda.com</p>
+  <p class="credit">Tarepanda &copy; San-X</p>
+</body>
+</html>

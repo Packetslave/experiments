@@ -1,0 +1,83 @@
+name: Deploy parked sites
+
+# Separate from site.yml on purpose: that workflow rebuilds and redeploys the
+# Hugo blog, and there is no reason for a parking-page edit to do that (or for
+# a blog post to redeploy the parked domains).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sites/**"
+      - ".github/workflows/parked.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-parked
+  cancel-in-progress: false
+
+jobs:
+  # Publishes sites/ to seaside over the same tailnet + rrsync transport that
+  # site.yml's deploy-server job uses for the blog, but with its own deploy
+  # user and its own jail — this key cannot write the blog's document root, or
+  # anything else outside /var/www/parked. Full background on the mechanism,
+  # including the tailnet ACLs and key rotation, is in blog/DEPLOY.md.
+  #
+  # Stays disabled until the repository variable PARKED_DEPLOY is set to
+  # 'true', so the server side can be provisioned first.
+  deploy:
+    runs-on: ubuntu-latest
+    if: vars.PARKED_DEPLOY == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      # Only each site's public/ ships. Source material and the asset scripts
+      # that generate it live beside it in git and must not reach the server.
+      - name: Assemble the parked sites
+        run: |
+          mkdir -p _parked
+          for dir in sites/*/; do
+            name=$(basename "$dir")
+            if [ ! -d "$dir/public" ]; then
+              echo "skipping $name: no public/ directory"
+              continue
+            fi
+            cp -r "$dir/public" "_parked/$name"
+          done
+          test -n "$(ls -A _parked)" || { echo "nothing to deploy"; exit 1; }
+          find _parked -type f | sort
+
+      - name: Join tailnet as ephemeral node
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      # The runner reaches the server over the tailnet, whose WireGuard layer
+      # already authenticates the peer node — so learning the SSH host key with
+      # ssh-keyscan at deploy time is safe, and there is no pinned known-hosts
+      # variable to maintain or let go stale.
+      - name: Configure SSH
+        env:
+          HOST: ${{ vars.DEPLOY_SSH_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.PARKED_DEPLOY_SSH_KEY }}" > ~/.ssh/parked_key
+          chmod 600 ~/.ssh/parked_key
+          ssh-keyscan -T 15 "$HOST" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts || { echo "ssh-keyscan got no host key from $HOST"; exit 1; }
+          echo "Offering key with fingerprint (compare with authorized_keys on the server):"
+          ssh-keygen -y -f ~/.ssh/parked_key | ssh-keygen -lf -
+
+      # The target path is "/" because the key's forced rrsync command jails
+      # the session to /var/www/parked on the server. --delete applies inside
+      # that jail, so removing a directory from sites/ unpublishes the domain.
+      - name: Rsync to server
+        env:
+          HOST: ${{ vars.DEPLOY_SSH_HOST }}
+          USER: ${{ vars.PARKED_DEPLOY_SSH_USER }}
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/parked_key -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes" \
+            _parked/ "$USER@$HOST:/"
