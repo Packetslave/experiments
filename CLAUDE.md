@@ -95,6 +95,9 @@ docs/
   regex-tester.html        # live regex matching with groups and flags
   blackjack-trainer.html   # basic strategy practice with session stats
   retirement-planner.html  # retirement savings projection with charts
+  openworld/               # Driftwood Isle: first-person low-poly open-world demo
+    index.html             #   page shell, import map, overlay + HUD
+    js/                    #   ES modules (three.js r185 from jsDelivr, no build step)
 ```
 
 ### GitHub Pages setup
@@ -106,7 +109,7 @@ docs/
 
 ### Conventions
 
-- Each tool is a **single self-contained HTML file** with embedded CSS and JS — no bundler, no dependencies.
+- Each tool is a **single self-contained HTML file** with embedded CSS and JS — no bundler, no dependencies. The one exception is `openworld/`, which is a directory of ES modules that pulls three.js from a public CDN via an import map — still no build step.
 - All pages share a Tokyo Night dark theme (`--bg: #1a1b26`, `--accent: #7aa2f7`, etc.) via CSS custom properties defined in `:root`.
 - Every page includes `<link rel="icon" href="data:image/svg+xml,...">` with an inline SVG favicon (accent-blue rounded square) to prevent 404s in request logs. Add this to any new page.
 - Tool pages link back to the index via `<a class="back" href="index.html">← Tools</a>` in the header.

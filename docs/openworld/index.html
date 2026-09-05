@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Driftwood Isle — open-world walkabout</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%237aa2f7'/></svg>">
+  <style>
+    :root {
+      --sky: #bfe3dd;
+      --ink: #2f3a4a;
+      --ink-soft: #5b6b7d;
+      --card: rgba(255, 255, 255, 0.82);
+      --accent: #e0574f;
+      --accent-2: #f6b26b;
+    }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); }
+    body {
+      font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--ink);
+    }
+    #scene { display: block; width: 100vw; height: 100vh; }
+
+    #overlay {
+      position: fixed; inset: 0;
+      display: grid; place-items: center;
+      background: radial-gradient(ellipse at center, rgba(191, 227, 221, 0.35), rgba(191, 227, 221, 0.85));
+      backdrop-filter: blur(2px);
+      transition: opacity 0.35s ease;
+    }
+    #overlay.hidden { opacity: 0; pointer-events: none; }
+    .card {
+      width: min(440px, calc(100vw - 48px));
+      background: var(--card);
+      border-radius: 20px;
+      padding: 28px 32px 26px;
+      box-shadow: 0 18px 50px rgba(47, 58, 74, 0.18);
+      text-align: center;
+    }
+    .card h1 { margin: 0 0 4px; font-size: 30px; letter-spacing: 0.01em; }
+    .card .sub { margin: 0 0 18px; color: var(--ink-soft); font-size: 14px; }
+    .keys {
+      display: grid; grid-template-columns: auto 1fr; gap: 8px 16px;
+      text-align: left; font-size: 14px; margin: 0 auto 20px; max-width: 320px;
+    }
+    kbd {
+      display: inline-block; min-width: 18px; padding: 2px 7px;
+      border-radius: 6px; background: #fff; border: 1px solid #d9dee5;
+      box-shadow: 0 2px 0 #d9dee5; font: 600 12px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--ink);
+    }
+    button#start {
+      font: 600 16px/1 inherit; color: #fff; background: var(--accent);
+      border: 0; border-radius: 999px; padding: 14px 28px; cursor: pointer;
+      box-shadow: 0 8px 20px rgba(224, 87, 79, 0.35);
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+    button#start:hover { transform: translateY(-1px); background: #d04a42; }
+    button#start:disabled { background: #b8c2cc; box-shadow: none; cursor: wait; }
+    .back {
+      display: inline-block; margin-top: 16px; color: var(--ink-soft);
+      font-size: 13px; text-decoration: none;
+    }
+    .back:hover { color: var(--ink); text-decoration: underline; }
+
+    #hud { position: fixed; inset: 0; pointer-events: none; }
+    #hud.hidden { display: none; }
+    #crosshair {
+      position: absolute; left: 50%; top: 50%; width: 6px; height: 6px;
+      margin: -3px 0 0 -3px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9); box-shadow: 0 0 0 1px rgba(47, 58, 74, 0.4);
+    }
+    .hud-line {
+      position: absolute; bottom: 14px; font: 500 12px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--ink); background: rgba(255, 255, 255, 0.6);
+      padding: 4px 9px; border-radius: 8px;
+    }
+    #hud-pos { left: 14px; }
+    #hud-fps { right: 14px; }
+    #hud-poi {
+      position: absolute; top: 28px; left: 50%; transform: translate(-50%, -8px);
+      font-size: 22px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink);
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+      opacity: 0; transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    #hud-poi.show { opacity: 1; transform: translate(-50%, 0); }
+    #hud-poi::after {
+      content: ""; display: block; width: 46px; height: 3px; margin: 8px auto 0;
+      border-radius: 2px; background: var(--accent-2);
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div id="overlay">
+    <div class="card">
+      <h1 id="overlay-title">Generating island…</h1>
+      <p class="sub" id="overlay-hint">A small pastel open world to wander. Find the village, the lighthouse, the mill, the shrine, the stones, the dock, and the summit.</p>
+      <div class="keys">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>walk</span>
+        <span><kbd>mouse</kbd></span><span>look around</span>
+        <span><kbd>shift</kbd></span><span>sprint</span>
+        <span><kbd>space</kbd></span><span>jump</span>
+        <span><kbd>esc</kbd></span><span>pause and release the mouse</span>
+      </div>
+      <button id="start" disabled>Loading…</button>
+      <div><a class="back" href="../index.html">← Tools</a></div>
+    </div>
+  </div>
+
+  <div id="hud" class="hidden">
+    <div id="crosshair"></div>
+    <div id="hud-poi"></div>
+    <div id="hud-pos" class="hud-line"></div>
+    <div id="hud-fps" class="hud-line"></div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
