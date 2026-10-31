@@ -11,7 +11,7 @@ import (
 // Tokyo Night-ish palette, matching the repo's web tools.
 var (
 	accentStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#7aa2f7"))
-	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#565f89"))
+	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#9aa5ce"))
 	errStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#f7768e"))
 	okStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#9ece6a"))
 	flagStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#e0af68"))
@@ -62,7 +62,7 @@ func (m Model) View() string {
 		b.WriteString("  " + dimStyle.Render("r retry · q quit") + "\n")
 		return b.String()
 
-	case m.mode == modePickProject || m.mode == modePickTag:
+	case m.mode == modePickProject || m.mode == modePickTag || m.mode == modeFileTag:
 		b.WriteString(indent(m.picker.view(), 2))
 		return b.String()
 

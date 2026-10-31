@@ -17,7 +17,7 @@ The client-side working list of inbox items for one session, fetched once and co
 _Avoid_: list, feed
 
 **Filing**:
-Moving an inbox item to a project, choosing the destination via a picker. Filing an action group moves the whole subtree intact.
+Moving an inbox item to a project, choosing the destination via a picker and then optionally a tag via a second picker. Filing an action group moves the whole subtree intact.
 _Avoid_: moving, sorting
 
 **Link item**:

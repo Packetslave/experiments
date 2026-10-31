@@ -22,6 +22,7 @@ const (
 	modeBrowse
 	modePickProject
 	modePickTag
+	modeFileTag // step 2 of filing: tag picker after the project pick
 	modeEditTitle
 	modeEditDefer
 	modeEditDue
@@ -61,6 +62,7 @@ type Model struct {
 	linksOnly bool // when set, navigation and actions see only link items
 
 	picker   picker
+	filePick pickItem // project chosen in step 1 of filing, applied in step 2
 	input    textinput.Model
 	inputErr string
 
@@ -322,15 +324,21 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case modeBrowse:
 		return m.updateBrowse(msg)
 
-	case modePickProject, modePickTag:
+	case modePickProject, modePickTag, modeFileTag:
 		switch msg.String() {
 		case "esc":
+			if m.mode == modeFileTag {
+				return m.applyFile(nil) // step 2 skipped: file without a tag
+			}
 			m.mode = modeBrowse
 			return m, nil
 		case "enter":
 			it, ok := m.picker.selected()
 			if !ok {
 				return m, nil
+			}
+			if m.mode == modeFileTag {
+				return m.applyFile(&it)
 			}
 			return m.applyPick(it)
 		default:
@@ -500,43 +508,12 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				apply: func(t *omnifocus.Task) { t.Flagged = newVal }}))
 
 	case "f":
-		items := make([]pickItem, 0, len(m.projects))
-		for _, p := range m.projects {
-			desc := p.Folder
-			if p.Status == "on hold" {
-				if desc != "" {
-					desc += " · "
-				}
-				desc += "on hold"
-			}
-			items = append(items, pickItem{id: p.ID, label: p.Name, desc: desc})
-		}
-		m.picker = newPicker("File \""+displayName(task.Name)+"\" to project:", "type to filter projects", items)
-		m.picker.createKind = "project"
-		if m.rec != nil {
-			cands := make([]suggest.Candidate, 0, len(m.projects))
-			for _, p := range m.projects {
-				cands = append(cands, suggest.Candidate{ID: p.ID, Name: p.Name})
-			}
-			m.picker.pin(m.rec.Projects(task.Name+" "+task.Note, cands, maxSuggestions))
-		}
+		m.picker = m.projectPicker(task, "File \""+displayName(task.Name)+"\" to project (1/2):")
 		m.mode = modePickProject
 		return m, textinput.Blink
 
 	case "t":
-		items := make([]pickItem, 0, len(m.tags))
-		for _, g := range m.tags {
-			items = append(items, pickItem{id: g.ID, label: g.Name})
-		}
-		m.picker = newPicker("Add tag to \""+displayName(task.Name)+"\":", "type to filter tags", items)
-		m.picker.createKind = "tag"
-		if m.rec != nil {
-			cands := make([]suggest.Candidate, 0, len(m.tags))
-			for _, g := range m.tags {
-				cands = append(cands, suggest.Candidate{ID: g.ID, Name: g.Name})
-			}
-			m.picker.pin(m.rec.Tags(task.Name+" "+task.Note, cands, maxSuggestions))
-		}
+		m.picker = m.tagPicker(task, "Add tag to \""+displayName(task.Name)+"\":")
 		m.mode = modePickTag
 		return m, textinput.Blink
 
@@ -558,6 +535,111 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// projectPicker builds the type-to-filter project list for task, with the
+// recommender's suggestions pinned when history has loaded.
+func (m Model) projectPicker(task omnifocus.Task, title string) picker {
+	items := make([]pickItem, 0, len(m.projects))
+	for _, p := range m.projects {
+		desc := p.Folder
+		if p.Status == "on hold" {
+			if desc != "" {
+				desc += " · "
+			}
+			desc += "on hold"
+		}
+		items = append(items, pickItem{id: p.ID, label: p.Name, desc: desc})
+	}
+	p := newPicker(title, "type to filter projects", items)
+	p.createKind = "project"
+	if m.rec != nil {
+		cands := make([]suggest.Candidate, 0, len(m.projects))
+		for _, pr := range m.projects {
+			cands = append(cands, suggest.Candidate{ID: pr.ID, Name: pr.Name})
+		}
+		p.pin(m.rec.Projects(task.Name+" "+task.Note, cands, maxSuggestions))
+	}
+	return p
+}
+
+// tagPicker is projectPicker's counterpart for tags.
+func (m Model) tagPicker(task omnifocus.Task, title string) picker {
+	items := make([]pickItem, 0, len(m.tags))
+	for _, g := range m.tags {
+		items = append(items, pickItem{id: g.ID, label: g.Name})
+	}
+	p := newPicker(title, "type to filter tags", items)
+	p.createKind = "tag"
+	if m.rec != nil {
+		cands := make([]suggest.Candidate, 0, len(m.tags))
+		for _, g := range m.tags {
+			cands = append(cands, suggest.Candidate{ID: g.ID, Name: g.Name})
+		}
+		p.pin(m.rec.Tags(task.Name+" "+task.Note, cands, maxSuggestions))
+	}
+	return p
+}
+
+// applyFile finishes step 2 of filing: move the current task to the project
+// stashed in filePick, then add tag (nil when the tag step was skipped).
+func (m Model) applyFile(tag *pickItem) (tea.Model, tea.Cmd) {
+	task, ok := m.current()
+	m.mode = modeBrowse
+	if !ok {
+		return m, nil
+	}
+	m.busy = true
+	return m, tea.Batch(m.spin.Tick, fileCmd(m.client, task, m.filePick, tag))
+}
+
+// fileCmd tags task (creating the tag for the create row) and then moves it
+// to proj (likewise), as one action so the card leaves the queue only once it
+// is filed. Tagging runs first: the tag is a harmless no-op if the move then
+// fails, whereas a moved-but-untagged item would already be out of the inbox.
+func fileCmd(client omnifocus.Client, task omnifocus.Task, proj pickItem, tag *pickItem) tea.Cmd {
+	id := task.ID
+	fullName := task.Name
+	taskName := displayName(task.Name)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
+		defer cancel()
+		done := actionDoneMsg{taskID: id, remove: true}
+		learn := omnifocus.HistoryEntry{Name: fullName}
+		tagSuffix := ""
+		if tag != nil {
+			tagID, tagName := tag.id, tag.label
+			if tag.id == createPickID {
+				g, err := client.CreateTag(ctx, tag.label)
+				if err != nil {
+					return actionDoneMsg{taskID: id, err: err}
+				}
+				done.newTag = &g
+				tagID, tagName = g.ID, g.Name+" (new)"
+			}
+			if err := client.AddTag(ctx, id, tagID); err != nil {
+				return actionDoneMsg{taskID: id, err: err}
+			}
+			learn.TagIDs = []string{tagID}
+			tagSuffix = " #" + tagName
+		}
+		projID, projName := proj.id, proj.label
+		if proj.id == createPickID {
+			p, err := client.CreateProject(ctx, proj.label)
+			if err != nil {
+				return actionDoneMsg{taskID: id, err: err}
+			}
+			done.newProject = &p
+			projID, projName = p.ID, "new project "+p.Name
+		}
+		if err := client.MoveToProject(ctx, id, projID); err != nil {
+			return actionDoneMsg{taskID: id, err: err}
+		}
+		learn.ProjectID = projID
+		done.learn = &learn
+		done.status = "→ filed to " + projName + ": " + taskName + tagSuffix
+		return done
+	}
+}
+
 func newInput(placeholder, value string) textinput.Model {
 	in := textinput.New()
 	in.Placeholder = placeholder
@@ -574,33 +656,19 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 		m.mode = modeBrowse
 		return m, nil
 	}
+	if m.mode == modePickProject {
+		// Step 1 of filing: remember the project, then ask for a tag.
+		m.filePick = it
+		m.picker = m.tagPicker(task, "Tag \""+displayName(task.Name)+"\" (2/2, esc to skip):")
+		m.mode = modeFileTag
+		return m, textinput.Blink
+	}
 	id := task.ID
-	wasProjectPick := m.mode == modePickProject
 	m.mode = modeBrowse
 	m.busy = true
 
 	switch {
-	case wasProjectPick && it.id == createPickID:
-		name := it.label
-		taskName := displayName(task.Name)
-		fullName := task.Name
-		client := m.client
-		return m, tea.Batch(m.spin.Tick, func() tea.Msg {
-			ctx, cancel := context.WithTimeout(context.Background(), actionTimeout)
-			defer cancel()
-			proj, err := client.CreateProject(ctx, name)
-			if err != nil {
-				return actionDoneMsg{taskID: id, err: err}
-			}
-			if err := client.MoveToProject(ctx, id, proj.ID); err != nil {
-				return actionDoneMsg{taskID: id, err: err}
-			}
-			return actionDoneMsg{taskID: id, remove: true, newProject: &proj,
-				learn:  &omnifocus.HistoryEntry{Name: fullName, ProjectID: proj.ID},
-				status: "→ filed to new project " + proj.Name + ": " + taskName}
-		})
-
-	case !wasProjectPick && it.id == createPickID:
+	case it.id == createPickID:
 		name := it.label
 		taskName := displayName(task.Name)
 		fullName := task.Name
@@ -617,7 +685,7 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 			}
 			tagName := tag.Name
 			return actionDoneMsg{taskID: id, newTag: &tag,
-				learn: &omnifocus.HistoryEntry{Name: fullName, TagIDs: []string{tag.ID}},
+				learn:  &omnifocus.HistoryEntry{Name: fullName, TagIDs: []string{tag.ID}},
 				status: "# tagged " + tagName + " (new): " + taskName,
 				apply: func(t *omnifocus.Task) {
 					for _, existing := range t.Tags {
@@ -629,12 +697,6 @@ func (m Model) applyPick(it pickItem) (tea.Model, tea.Cmd) {
 				}}
 		})
 
-	case wasProjectPick:
-		pickID := it.id
-		return m, tea.Batch(m.spin.Tick, actionCmd(id,
-			func(ctx context.Context) error { return m.client.MoveToProject(ctx, id, pickID) },
-			actionDoneMsg{status: "→ filed to " + it.label + ": " + displayName(task.Name), remove: true,
-				learn: &omnifocus.HistoryEntry{Name: task.Name, ProjectID: pickID}}))
 	default: // Add tag
 		pickID := it.id
 		tagName := it.label
@@ -876,4 +938,3 @@ func (m *Model) setStatus(s string, isErr bool) {
 	m.status = s
 	m.statusIsErr = isErr
 }
-

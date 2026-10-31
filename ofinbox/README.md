@@ -39,7 +39,7 @@ make test            # unit tests (no OmniFocus needed)
 | `g` / `G` (or home/end) | first / last item |
 | `c` | mark complete |
 | `d` | drop |
-| `f` | file to a project (type-to-filter picker) |
+| `f` | file to a project, then tag it (two type-to-filter pickers; `esc` at the tag step files untagged) |
 | `l` | file a link item to the links project (see below) |
 | `o` | open a link item in the default browser |
 | `t` | add a tag (type-to-filter picker; repeat for more tags) |

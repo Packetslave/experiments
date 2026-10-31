@@ -144,14 +144,60 @@ func TestFileToProject(t *testing.T) {
 		t.Fatal("picker has no items")
 	}
 	m = drive(t, m, key("enter"))
+	// Step 2: the tag picker. Nothing has been filed yet.
+	if m.mode != modeFileTag {
+		t.Fatalf("mode after project pick = %d, want modeFileTag", m.mode)
+	}
+	if len(m.tasks) != initial {
+		t.Fatal("project pick alone must not file the task")
+	}
+	if !strings.Contains(m.picker.title, "2/2") {
+		t.Fatalf("step-2 picker title = %q", m.picker.title)
+	}
+	m = drive(t, m, key("enter"))
 	if m.mode != modeBrowse {
-		t.Fatalf("mode after pick = %d, want modeBrowse", m.mode)
+		t.Fatalf("mode after tag pick = %d, want modeBrowse", m.mode)
 	}
 	if len(m.tasks) != initial-1 {
 		t.Fatalf("after filing: %d tasks, want %d", len(m.tasks), initial-1)
 	}
 	if m.processed != 1 {
 		t.Fatalf("processed = %d, want 1", m.processed)
+	}
+	if m.statusIsErr || !strings.Contains(m.status, "filed to") || !strings.Contains(m.status, "#") {
+		t.Fatalf("status = %q, want filed-with-tag", m.status)
+	}
+}
+
+func TestFileEscAtTagStepFilesWithoutTag(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initial := len(m.tasks)
+	m = drive(t, m, key("f"))
+	m = drive(t, m, key("enter"))
+	m = drive(t, m, key("esc"))
+	if m.mode != modeBrowse {
+		t.Fatalf("mode = %d, want modeBrowse", m.mode)
+	}
+	if len(m.tasks) != initial-1 || m.processed != 1 {
+		t.Fatalf("after skipping tag: %d tasks (want %d), processed %d", len(m.tasks), initial-1, m.processed)
+	}
+	if m.statusIsErr || strings.Contains(m.status, "#") {
+		t.Fatalf("status = %q, want filed without a tag", m.status)
+	}
+}
+
+func TestFileWithNewTag(t *testing.T) {
+	m := loaded(t, omnifocus.NewDemoClient())
+	initialTags := len(m.tags)
+	m = drive(t, m, key("f"))
+	m = drive(t, m, key("enter"))
+	m = drive(t, m, key("Brand New Tag"))
+	m = drive(t, m, key("enter"))
+	if len(m.tags) != initialTags+1 || m.tags[len(m.tags)-1].Name != "Brand New Tag" {
+		t.Fatalf("tags after filing = %d (want %d)", len(m.tags), initialTags+1)
+	}
+	if m.statusIsErr || !strings.Contains(m.status, "#Brand New Tag (new)") {
+		t.Fatalf("status = %q", m.status)
 	}
 }
 
@@ -436,6 +482,7 @@ func TestFileToNewProject(t *testing.T) {
 	}
 	m = drive(t, m, key("Brand New Project"))
 	m = drive(t, m, key("enter"))
+	m = drive(t, m, key("esc")) // skip the tag step
 
 	if len(m.tasks) != initialTasks-1 {
 		t.Fatalf("after filing: %d tasks, want %d", len(m.tasks), initialTasks-1)
@@ -612,9 +659,10 @@ func TestSuggestionsPinnedInProjectPicker(t *testing.T) {
 	if !strings.Contains(m.picker.view(), "★") {
 		t.Fatal("picker view has no ★ marker")
 	}
-	// Accepting the top suggestion is just f + enter.
+	// Accepting the top suggestion is f + enter, then esc to skip the tag.
 	initial := len(m.tasks)
 	m = drive(t, m, key("enter"))
+	m = drive(t, m, key("esc"))
 	if len(m.tasks) != initial-1 || !strings.Contains(m.status, "Health") {
 		t.Fatalf("after accepting suggestion: %d tasks (want %d), status %q", len(m.tasks), initial-1, m.status)
 	}
@@ -676,13 +724,20 @@ func TestFilingTeachesRecommender(t *testing.T) {
 	m = drive(t, m, key("f"))
 	m = drive(t, m, key("travel"))
 	m = drive(t, m, key("enter"))
-	if !strings.Contains(m.status, "Travel prep") {
-		t.Fatalf("status = %q, want filed to Travel prep", m.status)
+	m = drive(t, m, key("phone"))
+	m = drive(t, m, key("enter"))
+	if !strings.Contains(m.status, "Travel prep") || !strings.Contains(m.status, "#phone") {
+		t.Fatalf("status = %q, want filed to Travel prep #phone", m.status)
 	}
-	// A later similar capture now suggests Travel prep from the session's
-	// own filing decision ("offsite" appears nowhere in the demo history).
+	// A later similar capture now suggests Travel prep and phone from the
+	// session's own filing decision ("offsite" appears nowhere in the demo
+	// history).
 	got := m.rec.Projects("plan next offsite", []suggest.Candidate{{ID: "p3", Name: "Travel prep"}}, 3)
 	if len(got) == 0 || got[0] != "p3" {
 		t.Fatalf("recommender after filing = %v, want p3 first", got)
+	}
+	gotTags := m.rec.Tags("plan next offsite", []suggest.Candidate{{ID: "g5", Name: "phone"}}, 3)
+	if len(gotTags) == 0 || gotTags[0] != "g5" {
+		t.Fatalf("tag recommender after filing = %v, want g5 first", gotTags)
 	}
 }
